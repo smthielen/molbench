@@ -50,3 +50,11 @@ CsvComparator.compare(benchmark: dict, external_data: dict, properties: tuple) -
     Compare benchmark data with external data and return file contents of the comparison in CSV format.
 """
 
+import molbench.configuration
+
+config = molbench.configuration.instance
+
+def get_config(key: str, default=None):
+    molbench.configuration._init_instance()
+    return config.get(key, default)
+

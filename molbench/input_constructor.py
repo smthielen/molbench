@@ -66,7 +66,7 @@ class TemplateConstructor(InputConstructor):
     def _sub_template_vals(self, template: str, subvals: dict) -> str:
         subst = str(template)
         for key, subval in subvals.items():
-            subst = subst.replace(f"[[{key}]]", subval)
+            subst = subst.replace(f"[[{key}]]", str(subval))
         return subst
 
     def _check_calc_details_sanity(self, cd: dict) -> dict:
@@ -81,7 +81,8 @@ class TemplateConstructor(InputConstructor):
         for ff in fallback_fields:
             if ff not in cd:
                 log.warning(f"Field {ff} not found in calculation details. Reverting to global configuration fallback.", self)
-                # TODO load configuration
+                fb_val = molbench.get_config(ff, default="")
+                cd.update({ff: fb_val})
         for of in optional_fields:
             if of not in cd:
                 cd.update({of: ""})
