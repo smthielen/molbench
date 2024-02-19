@@ -1,0 +1,121 @@
+"""Molbench initialisiation file
+
+This file initialises the Molbench Package. Molbench is a Python package that is used for benchmarking quantum chemical applications, methods and suites. This is achieved via the following methods.
+
+load_benchmark
+==============
+Arguments: 
+    benchmark (str)
+Returns:
+    benchmark data (dict)
+
+This method loads in a benchmark, which is identified by "benchmark". If this matches a default identification string, that benchmark is loaded. Otherwise, "benchmark" is read as a filepath and the file located there is loaded. An error is raised if this fails.
+
+load_external
+=============
+Arguments:
+    filepath (str)
+    parser (ExternalParser)
+Returns:
+    external data (dict)
+
+This method loads data from an external source, i. e. a directory that (recursively) contains output files. The parser given as an argument is then used to interpret the data found within the output files and return it in a sane directory format.
+
+export_xyz
+==========
+Arguments:
+    benchmark (dict)
+    filepath (str)
+    flat_structure (bool, default: False)
+    name_template (str, default: [[name]].xyz)
+Returns:
+    void
+
+This method exports xyz files for the specified benchmark to the directory specified at filepath. If "filepath" does not exist, it is created. If "flat_structure" is set to True, all xyz files will be put directly into the directory at filepath; otherwise, a subdirectory for each file is created. "name_template" determines how the filenames for each input file are structured. 
+
+export_input
+============
+Arguments:
+    benchmark (dict)
+    filepath (str)
+    constructor (InputConstructor)
+    flat_structure (bool, default: False)
+    name_template (str, default: [[name]]_[[method]]_[[basis]].in)
+
+This method writes input files for the given benchmark to the directory located at filepath. The constructor is used to make the input files.
+
+export_comparison
+=================
+Arguments:
+    benchmark (dict)
+    external_data (dict)
+    properties (tuple)
+    filepath (str)
+    comparator (Comparator, default: CsvComparator)
+Returns:
+    void
+
+This method compares the given external data with the benchmark and writes it into a file located at filepath. The properties, which are compared (e. g. energy, dipole moment) are given in "properties". The exact method of comparison is defined in "comparator".
+
+
+
+
+Additionally, the following classes are defined to assist with this.
+
+ExternalParser
+==============
+Functions
+---------
+load:
+    Arguments:
+        filepath (str)
+        suffix (str, default: out)
+    Returns:
+        external data (dict)
+
+This class is the parent class for an Output-API. Any class which is supposed to load external data from a directory must inherit from this class.
+
+InputConstructor
+================
+Functions
+---------
+create:
+    Arguments:
+        benchmark (dict)
+        filepath (str)
+        flat_structure (bool, default: False)
+        name_template (str, default: [[name]]_[[method]]_[[basis]].in)
+    Returns:
+        void
+
+This class is the parent class for an Inputfile-API. Any class which is supposed to write input files for a benchmark must inherit from this class.
+
+Comparator
+==========
+Functions
+---------
+compare:
+    Arguments:
+        benchmark (dict)
+        external_data (dict)
+        properties (tuple)
+    Returns:
+        filecontent (str)
+
+This class is the parent class for a Comparison between external data and a benchmark set. Its defining function "compare" creates the file contents of the given comparison.
+
+CsvComparator (Comparator)
+==========================
+Functions
+---------
+compare:
+    Arguments:
+        benchmark (dict)
+        external_data (dict)
+        properties (tuple)
+    Returns:
+        filecontent (str)
+
+This class is a subclass of Comparator and creates a csv table for a comparison. This csv table is structured such that in each line, one entry in the benchmark (i. e. molecule/method/basis conjunction) is compared to the external data.
+
+"""
