@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 
-logger = None
+instance = None
 
 class MolbenchFormatter(logging.Formatter):
     COLORS = {
@@ -22,59 +22,60 @@ class MolbenchFormatter(logging.Formatter):
         return super().format(record)
 
 
-def __initlogger():
-    global logger
-    if logger is not None:
+def __init_log_instance():
+    global instance
+    if instance is not None:
         return
-    logger = logging.getLogger("molbench")
-    logger.setLevel(os.environ.get("MOLBENCH_VERBOSE", "INFO"))
+    instance = logging.getLogger("molbench")
+    instance.setLevel(os.environ.get("MOLBENCH_VERBOSE", "INFO"))
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(os.environ.get("MOLBENCH_VERBOSE", "INFO"))
     formatter = MolbenchFormatter()
     stream_handler.setFormatter(formatter)
-    logger.addHandler(stream_handler)
+    instance.addHandler(stream_handler)
 
 def debug(msg: str, cause=None):
-    __initlogger()
-    global logger
+    __init_log_instance()
+    global instance
     if cause is None:
-        logger.debug(msg)
+        instance.debug(msg)
     else:
-        logger.debug(f"[{cause}] {msg}")
+        instance.debug(f"[{cause}] {msg}")
 
 def info(msg: str, cause=None):
-    __initlogger()
-    global logger
+    __init_log_instance()
+    global instance
     if cause is None:
-        logger.info(msg)
+        instance.info(msg)
     else:
-        logger.info(f"[{cause}] {msg}")
+        instance.info(f"[{cause}] {msg}")
 
 def warning(msg: str, cause=None):
-    __initlogger()
-    global logger
+    __init_log_instance()
+    global instance
     if cause is None:
-        logger.warning(msg)
+        instance.warning(msg)
     else:
-        logger.warning(f"[{cause}] {msg}")
+        instance.warning(f"[{cause}] {msg}")
 
 def error(msg: str, cause=None, etype: str = ""):
-    __initlogger()
-    global logger
+    __init_log_instance()
+    global instance
     if cause is None:
-        logger.error(f"{msg} (Error type: {etype})")
+        instance.error(f"{msg} (Error type: {etype})")
     else:
-        logger.warning(f"[{cause}] {msg} (Error type: {etype})")
+        instance.warning(f"[{cause}] {msg} (Error type: {etype})")
     
 
-def critical(msg: str, cause, linecontent: str, linenum: str, etype: str = ""):
-    __initlogger()
-    global logger
-    msg0 = f" CRITICAL ERROR IN MOLBENCH EXECUTION [Place: {cause}]"
-    msg_print = "=" * len(msg0) + f"\n{msg0}\n" + "=" * len(msg0) + "\n\n"
-    msg_print += f"Error type:         {etype}\nLine Number:        {linenum}\n\n"
-    msg_print += f"{linecontent}\n" + "^" * len(linecontent) + "\n"
-    msg_print += msg + "\n\nExecution aborted."
-    logger.critical(msg_print)
+def critical(msg: str, cause):
+    __init_log_instance()
+    global instance
+    instance.critical(f"[{cause}] CRITICAL ERROR: {msg}")
+    #msg0 = f" CRITICAL ERROR IN MOLBENCH EXECUTION [Place: {cause}]"
+    #msg_print = "=" * len(msg0) + f"\n{msg0}\n" + "=" * len(msg0) + "\n\n"
+    #msg_print += f"Error type:         {etype}\nLine Number:        {linenum}\n\n"
+    #msg_print += f"{linecontent}\n" + "^" * len(linecontent) + "\n"
+    #msg_print += msg + "\n\nExecution aborted."
+    #instance.critical(msg_print)
     sys.exit(-1)
 

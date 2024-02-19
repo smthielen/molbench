@@ -8,6 +8,7 @@ Methods
 load_benchmark(benchmark: str) -> dict
     Load a benchmark identified by the provided benchmark string or filepath.
 
+# RETRACTED
 load_external(filepath: str, parser: ExternalParser) -> dict
     Load data from an external source, interpreting it using the provided parser.
 

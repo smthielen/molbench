@@ -11,6 +11,9 @@ Returns:
 
 This method loads in a benchmark, which is identified by "benchmark". If this matches a default identification string, that benchmark is loaded. Otherwise, "benchmark" is read as a filepath and the file located there is loaded. An error is raised if this fails.
 
+
+# RETRACTED
+# USE ExternalParser.load(...) INSTEAD
 load_external
 =============
 Arguments:
