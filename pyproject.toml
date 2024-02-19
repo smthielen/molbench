@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "molbench"
+version = "0.1.0"
+description = "This package is a molecular benchmarking package. It allows for interactive comparison of generated data with benchmarks kept inside this package and for subsequent statistical analysis."
+authors = ["Linus Bjarne Dittmer"]
+license = "MIT License"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+numpy = "^1.26.2"
+matplotlib = "^3.8.2"
+argparse = "^1.4.0"
+
+[tool.poetry.group.dev.dependencies]
+numpy = "^1.26.2"
+matplotlib = "^3.8.2"
+pytest = "^7.4.3"
+argparse = "^1.4.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
