@@ -54,7 +54,7 @@ import molbench.configuration
 
 config = molbench.configuration.instance
 
+
 def get_config(key: str, default=None):
     molbench.configuration._init_instance()
     return config.get(key, default)
-
