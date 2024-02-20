@@ -71,3 +71,7 @@ from .input_constructor import InputConstructor, TemplateConstructor
 from .bash_wrapper import create_bash_files, make_send_script
 
 
+__all__ = ["config", "load_benchmark", "InputConstructor",
+           "TemplateConstructor", "create_bash_files", "make_send_script"]
+__version__ = "0.0.1"
+__authors__ = ["Linus Bjarne Dittmer", "Jonas Leitner"]

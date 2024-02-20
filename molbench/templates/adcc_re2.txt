@@ -1,0 +1,36 @@
+from pyscf import scf, gto
+from adcc import ReferenceState, LazyRe, set_n_threads
+from math import sqrt
+import json
+import os
+
+mol = gto.M(
+	atom="""[[xyz]]""",
+	basis="[[basis]]", symmetry=0,
+	charge=[[charge]], spin=[[multiplicity]] - 1,
+	verbose=[[verbose]], unit="[[xyz_unit]]"
+)
+
+mf = scf.RHF(mol)
+mf.conv_tol = [[conv_tol]]
+mf.conv_tol_grad = [[conv_tol_grad]]
+mf.max_cycle = [[scf_max_cycle]]
+
+mf.kernel()
+
+set_n_threads([[n_threads]])
+
+hf = ReferenceState(mf)
+re = LazyRe(hf, [[re_conv_tol]])
+
+dipole = re.dipole_moment(2)
+
+out = {
+	"energy": re.energy(2),
+	"dipole_moment": list(dipole),
+	"total_dipole_moment": sqrt(sum(comp**2 for comp in dipole))
+}
+
+name = os.path.basename(__file__)
+outname = os.path.splitext(name)[0] + ".out"
+json.dump(out, open(outname, 'w'), indent=2)
