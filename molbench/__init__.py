@@ -65,6 +65,9 @@ CsvComparator.compare(benchmark: dict, external_data: dict, properties: tuple) -
     comparison in CSV format.
 """
 
-import molbench.configuration
+from .configuration import config
+from .benchmark_handler import load_benchmark
+from .input_constructor import InputConstructor, TemplateConstructor
+from .bash_wrapper import create_bash_files, make_send_script
 
-config = molbench.configuration.instance
+

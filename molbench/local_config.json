@@ -1,4 +1,5 @@
 {
 	"threads": 1,
+    "walltime": "12:00:00",
 	"memory": 50000
 }

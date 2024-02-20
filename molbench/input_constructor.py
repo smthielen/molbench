@@ -4,8 +4,7 @@
 
 import os
 from . import logger as log
-from . import config
-
+from .configuration import config
 
 class InputConstructor:
     """
@@ -31,8 +30,9 @@ class InputConstructor:
 
     def create(self, benchmark: dict, filepath: str,
                flat_structure: bool = False,
-               name_template: str = '[[name]]_[[method]]_[[basis]].in'):
-        pass
+               name_template: str = '[[name]]_[[method]]_[[basis]].in'
+               ) -> list:
+        return None
 
 
 class TemplateConstructor(InputConstructor):
@@ -93,9 +93,12 @@ class TemplateConstructor(InputConstructor):
         # For each, create a file (and folder in deep structure),
         # then insert template
         basepath_abs = os.path.abspath(basepath)
+        inputfile_list = []
 
         if not os.path.exists(basepath_abs):
             os.makedirs(basepath_abs, exist_ok=True)
+
+        log.info("Path created successfully")
 
         for molkey, moldict in benchmark.items():
             # Not sure if we want to skip creating input files in this case
@@ -105,10 +108,13 @@ class TemplateConstructor(InputConstructor):
                             if k != 'properties'}
             if "name" not in base_details:
                 base_details["name"] = molkey
+            if "xyz" in base_details:
+                base_details["xyz"] = "\n".join(base_details["xyz"])
 
-            basis_sets = set([prop['basis'] for prop in moldict['properties']
-                              if 'basis' in prop])
+            basis_sets = set([prop['basis'] for prop in 
+                              moldict['properties'].values() if 'basis' in prop])
             for basis in basis_sets:
+                log.debug(f"Now handling: {molkey} {basis}")
                 details = base_details.copy()
                 details["basis"] = basis
 
@@ -131,3 +137,6 @@ class TemplateConstructor(InputConstructor):
                                     exist_ok=True)
                 with open(inputfile_path, "w") as f:
                     f.write(inputfile_contents)
+                inputfile_list.append(inputfile_path)
+        
+        return inputfile_list

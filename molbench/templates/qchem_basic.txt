@@ -10,7 +10,6 @@ $end
 $rem
 method [[method]]
 basis [[basis]]
-[[kwargs]]
 threads [[threads]]
 mem_total [[memory]]
 !QSYS wt=[[walltime]]

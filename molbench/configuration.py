@@ -41,4 +41,4 @@ class Configuration(dict):
         self[attr] = val
 
 
-instance = Configuration()
+config = Configuration()
