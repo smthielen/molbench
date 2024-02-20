@@ -29,6 +29,8 @@ class InputConstructor:
     def __init__(self):
         pass
 
+    # XXX: this function signature only makes sense for the template
+    # constructor
     def create(self, benchmark: dict, filepath: str,
                flat_structure: bool = False,
                name_template: str = '[[name]]_[[method]]_[[basis]].in'):

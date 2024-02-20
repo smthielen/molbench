@@ -2,7 +2,9 @@ import logging
 import os
 import sys
 
+
 instance = None
+
 
 class MolbenchFormatter(logging.Formatter):
     COLORS = {
@@ -34,48 +36,43 @@ def __init_log_instance():
     stream_handler.setFormatter(formatter)
     instance.addHandler(stream_handler)
 
+
 def debug(msg: str, cause=None):
-    __init_log_instance()
     global instance
     if cause is None:
         instance.debug(msg)
     else:
         instance.debug(f"[{cause}] {msg}")
 
+
 def info(msg: str, cause=None):
-    __init_log_instance()
     global instance
     if cause is None:
         instance.info(msg)
     else:
         instance.info(f"[{cause}] {msg}")
 
+
 def warning(msg: str, cause=None):
-    __init_log_instance()
     global instance
     if cause is None:
         instance.warning(msg)
     else:
         instance.warning(f"[{cause}] {msg}")
 
+
 def error(msg: str, cause=None, etype: str = ""):
-    __init_log_instance()
     global instance
     if cause is None:
         instance.error(f"{msg} (Error type: {etype})")
     else:
         instance.warning(f"[{cause}] {msg} (Error type: {etype})")
-    
+
 
 def critical(msg: str, cause):
-    __init_log_instance()
     global instance
     instance.critical(f"[{cause}] CRITICAL ERROR: {msg}")
-    #msg0 = f" CRITICAL ERROR IN MOLBENCH EXECUTION [Place: {cause}]"
-    #msg_print = "=" * len(msg0) + f"\n{msg0}\n" + "=" * len(msg0) + "\n\n"
-    #msg_print += f"Error type:         {etype}\nLine Number:        {linenum}\n\n"
-    #msg_print += f"{linecontent}\n" + "^" * len(linecontent) + "\n"
-    #msg_print += msg + "\n\nExecution aborted."
-    #instance.critical(msg_print)
     sys.exit(-1)
 
+
+__init_log_instance()
