@@ -11,7 +11,7 @@ class Configuration(dict):
     required_fields = {
         "threads": 1,
         "memory": 50000,
-        "walltime": "12h"  # XXX: is this valid syntax? nicht eher 12:00:00?
+        "walltime": "12:00:00"
     }
 
     def __init__(self, *args, **kwargs):
