@@ -51,25 +51,3 @@ def load_benchmark(benchmark: str) -> dict:
 
     return bm_dict
 
-def convert_to_comparable(benchmark: dict) -> dict:
-    comparable = {}
-    for molkey, moldict in benchmark.items():
-        if not "properties" in moldict:
-            continue
-        if len(moldict["properties"]) == 0:
-            continue
-        methods_bases = set([(prop['method'], prop['basis']) for prop in 
-                            moldict['properties'].values() if 'basis' in prop 
-                            and 'method' in prop])
-        for method_basis in methods_bases:
-            method, basis = method_basis
-            local_props = {}
-            for prop in moldict['properties']:
-                if (prop['method'], prop['basis']) == method_basis:
-                    local_props[prop['type']] = prop['value']
-            comparable[(molkey, method, basis)] = local_props
-    return comparable
-                    
-
-
-
