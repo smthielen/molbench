@@ -16,7 +16,7 @@ def create_bash_files(files: list, command: str) -> list:
         os.chdir(fpath)
         infilename = os.path.basename(f)
         cmd = command.strip() + " " + infilename
-        log.info(f"Now building script for {infilename} / {f}")
+        log.info(f"Now building script for {infilename}: {f}")
         subprocess.run(cmd, shell=True)
         log.debug(f"Executing command : {cmd}")
 

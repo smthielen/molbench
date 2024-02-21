@@ -28,8 +28,8 @@ dipole = re.dipole_moment(2)
 
 out = {
 	"energy": re.energy(2),
-	"dipole_moment": list(dipole),
-	"total_dipole_moment": sqrt(sum(comp**2 for comp in dipole))
+	"dipole moment": list(dipole),
+	"total dipole moment": sqrt(sum(comp**2 for comp in dipole))
 }
 
 name = os.path.basename(__file__)

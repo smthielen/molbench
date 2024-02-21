@@ -123,8 +123,8 @@ class QChem_MP2_Parser(ExternalParser):
                         )
                         # Debye to au
                         dip_mom /= 0.393430307
-                        data["dipole_moment"] = tuple(dip_mom)
-                        data["total_dipole_moment"] = (
+                        data["dipole moment"] = tuple(dip_mom)
+                        data["total dipole moment"] = (
                             numpy.linalg.norm(dip_mom)
                         )
                 if "mulliken charges" not in data:
