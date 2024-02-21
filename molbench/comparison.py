@@ -19,6 +19,9 @@ class Comparison(dict):
         super().__init__()
 
     def add_benchmark(self, benchmark: dict, benchmark_id: str) -> None:
+        if isinstance(benchmark, Comparison):
+            log.error("Cannot parse a Comparison as a benchmark.")
+            return
         for name, moldict in benchmark.items():
             properties = moldict.get("properties", None)
             if not properties:  # key does not exist or prop dict is empty
@@ -47,6 +50,9 @@ class Comparison(dict):
                 d[benchmark_id] = value
 
     def add_external(self, external: dict) -> None:
+        if isinstance(benchmark, Comparison):
+            log.error("Cannot parse a Comparison as external data.")
+            return
         for outfile, metadata in external.items():
             basis = metadata.get("basis", None)
             method = metadata.get("method", None)

@@ -38,14 +38,23 @@ dm1 = ordmp2.make_rdm1()
 dip_moment = mf.dip_moment(dm=dm1)
 mul_pops, mul_charges = mf.mulliken_pup(dm=dm1)
 
-out = {
+name = os.path.basename(__file__)
+outname = os.path.splitext(name)[0] + ".out"
+
+metadata = {
+	"name": name.split("_")[0],
+	"basis": "[[basis]]",
+	"method": "[[method]]",
+
+}
+
+data = {
 	"energy": ordmp2.e_tot,
 	"dipole moment": tuple(dip_moment),
 	"total dipole moment": numpy.linalg.norm(dip_moment),
     "mulliken populations": tuple(mul_pops),
     "mulliken charges": tuple(mul_charges)
 }
+metadata["data"] = data
 
-name = os.path.basename(__file__)
-outname = os.path.splitext(name)[0] + ".out"
-json.dump(out, open(outname, 'w'), indent=2)
+json.dump(metadata, open(outname, 'w'), indent=4)
