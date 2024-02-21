@@ -109,8 +109,8 @@ class TemplateConstructor(InputConstructor):
                             if k != 'properties'}
             if "name" not in base_details:
                 base_details["name"] = molkey
-            # or instead add a callback to the function signature?
-            if "xyz" in base_details:
+            if "xyz" in base_details and \
+                    not isinstance(base_details["xyz"], str):
                 base_details["xyz"] = "\n".join(base_details["xyz"])
 
             basis_sets = set([prop['basis'] for prop in
