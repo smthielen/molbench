@@ -26,12 +26,20 @@ re = LazyRe(hf, [[re_conv_tol]])
 
 dipole = re.dipole_moment(2)
 
-out = {
+name = os.path.basename(__file__)
+outname = os.path.splitext(name)[0] + ".out"
+
+metadata = {
+	"name": name.split("_")[0],
+	"basis": "[[basis]]",
+	"method": "[[method]]",
+
+}
+data = {
 	"energy": re.energy(2),
 	"dipole moment": list(dipole),
 	"total dipole moment": sqrt(sum(comp**2 for comp in dipole))
 }
+metadata["data"] = data
 
-name = os.path.basename(__file__)
-outname = os.path.splitext(name)[0] + ".out"
-json.dump(out, open(outname, 'w'), indent=2)
+json.dump(metadata, open(outname, 'w'), indent=2)

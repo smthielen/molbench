@@ -4,7 +4,7 @@ Comparison
 
 Structure as follows
 
-molkey -> basis -> method -> property
+molkey -> basis -> method -> property -> id/path
 
 """
 
@@ -13,55 +13,61 @@ import molbench.logger as log
 
 class Comparison(dict):
 
-    def __setattr__(self, attr: str, val) -> None:
-        self[attr] = val
+    def __init__(self):
+        # this way we could avoid that some values are passed to the dict
+        # upon creation
+        super().__init__()
 
-    def init_from_benchmark(self, benchmark: dict) -> None:
-        if isinstance(benchmark, Comparison):
-            return
-        self.clear()
-        for molkey, moldict in benchmark.items():
-            if "properties" not in moldict:
+    def add_benchmark(self, benchmark: dict, benchmark_id: str) -> None:
+        for name, moldict in benchmark.items():
+            properties = moldict.get("properties", None)
+            if not properties:  # key does not exist or prop dict is empty
                 continue
-            if len(moldict["properties"]) == 0:
+            for prop in properties.values():
+                basis = prop.get("basis", None)
+                method = prop.get("method", None)
+                proptype = prop.get("type", None)
+                value = prop.get("value", None)
+                if basis is None or method is None or proptype is None or \
+                        value is None:
+                    continue
+                if name not in self:
+                    self[name] = {}
+                if basis not in (d := self[name]):
+                    d[basis] = {}
+                if method not in (d := d[basis]):
+                    d[method] = {}
+                if proptype not in (d := d[method]):
+                    d[proptype] = {}
+                if benchmark_id in (d := d[proptype]):
+                    log.warning("Benchmark ID is not unique. Found conflicting"
+                                f" entry for {name}, {basis}, {method} and "
+                                f"{proptype}. Overwriting the exisiting value",
+                                Comparison)
+                d[benchmark_id] = value
+
+    def add_external(self, external: dict) -> None:
+        for outfile, metadata in external.items():
+            basis = metadata.get("basis", None)
+            method = metadata.get("method", None)
+            name = metadata.get("name", None)
+            data = metadata.get("data", None)
+            if basis is None or method is None or name is None or data is None:
                 continue
-
-            bases_methods = set([(prop['basis'], prop['method']) for prop in
-                                moldict['properties'].values() if 'basis' in
-                                prop and 'method' in prop])
-
-            if len(bases_methods) == 0:
-                continue
-
-            local_dict = {}
-            for bm in bases_methods:
-                basis, method = bm
-                if basis not in local_dict:
-                    local_dict[basis] = {}
-                if method not in local_dict[basis]:
-                    local_dict[basis][method] = {}
-            for prop in moldict["properties"]:
-                d = local_dict[prop["basis"]][prop["method"]]
-                d[prop["type"]] = prop["value"]
-
-            self[molkey] = local_dict
-
-    def include_external(self, external: dict, signatures: dict) -> None:
-        if set(external.keys()) != set(signatures.keys()):
-            log.error("External data and signatures do not match.", self)
-            return
-        ext_keys = list(external.keys())
-        for ext_key in ext_keys:
-            method = signatures[ext_key]["method"]
-            basis = signatures[ext_key]["basis"]
-            molkey = signatures[ext_key]["molkey"]
-            if molkey not in self:
-                self[molkey] = {}
-            if basis not in self[molkey]:
-                self[molkey][basis] = {}
-            if method not in self[molkey][basis]:
-                self[molkey][basis][method] = {}
-            self[molkey][basis][method].update(external[ext_key])
+            if name not in self:
+                self[name] = {}
+            if basis not in (d := self[name]):
+                d[basis] = {}
+            if method not in (d := d[basis]):
+                d[method] = {}
+            for proptype, value in data.items():
+                if proptype not in d[method]:
+                    d[method][proptype] = {}
+                if outfile in d[method][proptype]:
+                    log.warning("Overwriting already existing value for "
+                                f"{name}, {basis}, {method} and {proptype}.",
+                                Comparison)
+                d[method][proptype][outfile] = value
 
 
 class Comparator:
