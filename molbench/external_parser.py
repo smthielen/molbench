@@ -3,16 +3,15 @@
 """
 import os.path
 import numpy
-from . import convert_to_comparable
-import molbench.logger as log
+
 
 class ExternalParser:
     """
     Parent class for an Output-API.
 
-    This class is used to load external data from a directory. Any class that 
-    is supposed to load external data from a directory must inherit from this 
-    class. The naming convention for subclasses is [SUITE]_[METHOD]_Parser 
+    This class is used to load external data from a directory. Any class that
+    is supposed to load external data from a directory must inherit from this
+    class. The naming convention for subclasses is [SUITE]_[METHOD]_Parser
     (e. g. PySCF_FCI_Parser, QChem_MP2_Parser, ORCA_CCSDT_Parser).
 
     Methods
@@ -28,7 +27,7 @@ class ExternalParser:
     def __init__(self):
         pass
 
-    def load(self, filepath: str, suffix: str = 'out') -> dict, dict:
+    def load(self, filepath: str, suffix: str = 'out') -> tuple[dict, dict]:
         return None, None
 
     def _fetch_all_outfiles(self, path: str, suffix: str = 'out') -> list:
@@ -44,11 +43,8 @@ class ExternalParser:
 
 
 class QChem_MP2_Parser(ExternalParser):
-    
-    def __init__(self):
-        super().__init__()
 
-    def parse_file(self, filename: str, lines: list) -> dict, dict:
+    def parse_file(self, filename: str, lines: list) -> tuple[dict, dict]:
         # Signature must contain molkey, basis, method
         signature = {"molkey": filename.split("_")[0]}
         fdict = {}
@@ -89,21 +85,24 @@ class QChem_MP2_Parser(ExternalParser):
                     fdict["dipole moment"] = tuple(dip_mom)
                     fdict["total dipole moment"] = numpy.linalg.norm(dip_mom)
             if "mulliken charges" not in fdict:
-                if "Ground-State Mulliken Net Atomic Charges" in lnw and not mulliken_flag:
+                if "Ground-State Mulliken Net Atomic Charges" in lnw \
+                        and not mulliken_flag:
                     mulliken_flag = True
                 elif mulliken_flag:
                     if lsplit[0] == "Atom":
                         continue
-                    if "------------------------" in lsplit[0] and len(mul_charges) == 0:
+                    if "------------------------" in lsplit[0] and \
+                            len(mul_charges) == 0:
                         continue
-                    if "------------------------" in lsplit[0] and len(mul_charges) > 0:
+                    if "------------------------" in lsplit[0] and \
+                            len(mul_charges) > 0:
                         fdict["mulliken charges"] = tuple(mul_charges)
                     else:
                         mul_charges.append(float(lsplit[-1]))
 
         return fdict, signature
 
-    def load(self, filepath: str, suffix: str = 'out') -> dict, dict:
+    def load(self, filepath: str, suffix: str = 'out') -> tuple[dict, dict]:
         outfiles = self._fetch_all_outfiles(filepath, suffix)
         ext_dict = {}
         signatures = {}
@@ -119,11 +118,6 @@ class QChem_MP2_Parser(ExternalParser):
 
 class PySCF_FCI_Parser(ExternalParser):
 
-    def __init__(self):
-        super().__init__()
-
-    def load(self, filepath: str, suffix: str = 'out') -> dict, dict:
+    def load(self, filepath: str, suffix: str = 'out') -> tuple[dict, dict]:
         # TODO
         return None
-
-

@@ -50,4 +50,3 @@ def load_benchmark(benchmark: str) -> dict:
         log.critical(f"Benchmark file {benchmark} cannot be read.")
 
     return bm_dict
-

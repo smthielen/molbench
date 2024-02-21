@@ -35,7 +35,7 @@ function cd_and_sbatch() {
     local script_file=$1
     local folder=$2
     echo "Sending $script_file"
-    cd "$folder" 
+    cd "$folder"
     """ + send_command.strip() + """ "$script_file"
     }\n\n"""
 

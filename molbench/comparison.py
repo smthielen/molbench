@@ -10,10 +10,8 @@ molkey -> basis -> method -> property
 
 import molbench.logger as log
 
-class Comparison(dict):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(self, *args, **kwargs)
+class Comparison(dict):
 
     def __setattr__(self, attr: str, val) -> None:
         self[attr] = val
@@ -23,18 +21,18 @@ class Comparison(dict):
             return
         self.clear()
         for molkey, moldict in benchmark.items():
-            if not "properties" in moldict:
+            if "properties" not in moldict:
                 continue
             if len(moldict["properties"]) == 0:
                 continue
-            
-            bases_methods = set([(prop['basis'], prop['method']) for prop in 
-                                moldict['properties'].values() if 'basis' in 
+
+            bases_methods = set([(prop['basis'], prop['method']) for prop in
+                                moldict['properties'].values() if 'basis' in
                                 prop and 'method' in prop])
-            
+
             if len(bases_methods) == 0:
                 continue
-            
+
             local_dict = {}
             for bm in bases_methods:
                 basis, method = bm
@@ -45,7 +43,7 @@ class Comparison(dict):
             for prop in moldict["properties"]:
                 d = local_dict[prop["basis"]][prop["method"]]
                 d[prop["type"]] = prop["value"]
-            
+
             self[molkey] = local_dict
 
     def include_external(self, external: dict, signatures: dict) -> None:
@@ -57,24 +55,28 @@ class Comparison(dict):
             method = signatures[ext_key]["method"]
             basis = signatures[ext_key]["basis"]
             molkey = signatures[ext_key]["molkey"]
-            if not molkey in self:
+            if molkey not in self:
                 self[molkey] = {}
-            if not basis in self[molkey]:
+            if basis not in self[molkey]:
                 self[molkey][basis] = {}
-            if not method in self[molkey][basis]:
+            if method not in self[molkey][basis]:
                 self[molkey][basis][method] = {}
             self[molkey][basis][method].update(external[ext_key])
+
 
 class Comparator:
     """
     Parent class for a comparison between external data and a benchmark set.
 
-    This class is used to perform comparisons between external data and a benchmark set. Any class that is supposed to perform such comparisons must inherit from this class.
+    This class is used to perform comparisons between external data and a
+    benchmark set. Any class that is supposed to perform such comparisons must
+    inherit from this class.
 
     Methods
     -------
     compare(benchmark: dict, external_data: dict, properties: tuple) -> str
-        Compare benchmark data with external data and return file contents of the comparison.
+        Compare benchmark data with external data and return file contents of
+        the comparison.
 
     Attributes
     ----------
@@ -84,7 +86,8 @@ class Comparator:
     def __init__(self):
         pass
 
-    def compare(benchmark: dict, external_data: dict, properties: tuple) -> str:
+    def compare(benchmark: dict, external_data: dict,
+                properties: tuple) -> str:
         return None
 
 
@@ -93,8 +96,7 @@ class CsvComparator(Comparator):
     def __init__(self):
         super().__init__()
 
-    def compare(benchmark: dict, external_data: dict, properties: tuple) -> str:
+    def compare(benchmark: dict, external_data: dict,
+                properties: tuple) -> str:
         # TODO
         return None
-
-
