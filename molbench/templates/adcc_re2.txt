@@ -5,7 +5,8 @@ import json
 import os
 
 mol = gto.M(
-	atom="""[[xyz]]""",
+	atom="""
+[[xyz]]""",
 	basis="[[basis]]", symmetry=0,
 	charge=[[charge]], spin=[[multiplicity]] - 1,
 	verbose=[[verbose]], unit="[[xyz_unit]]"
@@ -18,7 +19,7 @@ mf.max_cycle = [[scf_max_cycle]]
 
 mf.kernel()
 
-set_n_threads([[n_threads]])
+set_n_threads([[threads]])
 
 hf = ReferenceState(mf)
 re = LazyRe(hf, [[re_conv_tol]])

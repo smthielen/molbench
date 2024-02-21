@@ -5,6 +5,7 @@
 import os
 from . import logger as log
 from .configuration import config
+from .functions import substitute_template
 
 
 class InputConstructor:
@@ -72,21 +73,6 @@ class TemplateConstructor(InputConstructor):
                 log.critical(f"Custom template {template} could not be "
                              "loaded.", self)
 
-    def _sub_template_vals(self, template: str, subvals: dict) -> str:
-        while True:
-            start = template.find("[[")
-            stop = template.find("]]")
-            if start == -1 or stop == -1:
-                break
-            key = template[start+2:stop]
-            val = subvals.get(key, None)
-            if val is None:
-                log.error(f"No value for required parameter {key} "
-                          f"available. Available are {subvals}.", self,
-                          KeyError)
-            template = template.replace(template[start:stop+2], str(val), 1)
-        return template
-
     def create(self, benchmark: dict, basepath: str, calculation_details: dict,
                flat_structure: bool = False,
                name_template: str = '[[name]]_[[method]]_[[basis]].in'):
@@ -126,10 +112,9 @@ class TemplateConstructor(InputConstructor):
                     if key not in details:
                         details[key] = val
 
-                inputfile_contents = self._sub_template_vals(self.template,
-                                                             details)
-                inputfile_name = self._sub_template_vals(name_template,
+                inputfile_contents = substitute_template(self.template,
                                                          details)
+                inputfile_name = substitute_template(name_template, details)
                 if flat_structure:
                     inputfile_path = os.path.join(basepath_abs, inputfile_name)
                 else:

@@ -1,12 +1,15 @@
 import os
 import glob
 import subprocess
-import molbench.logger as log
+from . import logger as log
+from .functions import substitute_template
+from . import config
 
 
 def create_bash_files(files: list, command: str) -> list:
     bash_files = []
     basepath = os.getcwd()
+    command = substitute_template(command, config)
 
     for f in files:
         fpath = os.path.dirname(f)
@@ -30,6 +33,7 @@ def create_bash_files(files: list, command: str) -> list:
 
 def make_send_script(bashfiles: list, send_command: str,
                      sendscript_path: str):
+    send_command = substitute_template(send_command, config)
     sendscript_content = """#!/bin/bash
 function cd_and_sbatch() {
     local script_file=$1
