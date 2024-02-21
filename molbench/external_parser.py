@@ -37,7 +37,6 @@ class ExternalParser:
         metadata_extractors = OutFile()._registry
 
         data = {}
-
         for outf in outfiles:
             suite = self._suite_from_outfile(outf)
             extractor = metadata_extractors.get(suite, None)
@@ -51,6 +50,7 @@ class ExternalParser:
             if parser is None:
                 log.critical(f"No parser available for parsing {parser}.")
             data[outf] = parser.parse_file(outf)
+        return data
 
     def _fetch_all_outfiles(self, path: str, suffix: str = 'out') -> list:
         outfiles = []
@@ -68,7 +68,7 @@ class ExternalParser:
         try:
             json.load(open(outfile, 'r'))
             return "JSON"
-        except ValueError:
+        except json.JSONDecodeError:
             pass
         # check QCHEM
         with open(outfile, 'r') as f:
