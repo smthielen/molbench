@@ -1,0 +1,51 @@
+from pyscf import scf, gto, mp
+import numpy
+import json
+import os
+
+atom_str = """[[xyz]]"""
+basis = "[[basis]]"
+charge = "[[charge]]"
+spin = [[multiplicity]] - 1
+verbose = [[verbose]]
+unit = "[[xyz_unit]]"
+symmetry = "[[symmetry]]"
+restricted = not [[spin_unrestricted]]
+use_soscf = [[use_soscf]]
+ordmp2_opt = "[[optimality_criterion]]"
+
+mol = gto.M(atom=atom_str, basis=basis, charge=charge, spin=spin,
+            verbose=verbose, unit=unit, symmetry=symmetry)
+
+if spin == 0 or restricted:
+    mf = scf.RHF(mol)
+else:
+    mf = scf.UHF(mol)
+
+mf.conv_tol = [[conv_tol]]
+mf.conv_tol_grad = [[conv_tol_grad]]
+mf.max_cycle = [[scf_max_cycle]]
+
+if use_soscf:
+    mf.kernel()
+else:
+    mf.newton().kernel()
+
+ordmp2 = mp.ORDMP2(mf, optimality=ordmp2_opt)
+ordmp2.kernel()
+dm1 = ordmp2.make_rdm1()
+
+dip_moment = mf.dip_moment(dm=dm1)
+mul_pops, mul_charges = mf.mulliken_pup(dm=dm1)
+
+out = {
+	"energy": ordmp2.e_tot,
+	"dipole moment": tuple(dip_moment),
+	"total dipole moment": numpy.linalg.norm(dip_moment),
+    "mulliken populations": tuple(mul_pops),
+    "mulliken charges": tuple(mul_charges)
+}
+
+name = os.path.basename(__file__)
+outname = os.path.splitext(name)[0] + ".out"
+json.dump(out, open(outname, 'w'), indent=2)
