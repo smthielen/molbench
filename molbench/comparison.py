@@ -4,12 +4,12 @@ Comparison
 
 Structure as follows
 
-molkey -> basis -> method -> property -> id/path
+name -> basis -> method -> property -> id/path
 
 """
 
 import molbench.logger as log
-
+from .formatter import StdFormatter
 
 class Comparison(dict):
 
@@ -98,17 +98,81 @@ class Comparator:
     def __init__(self):
         pass
 
-    def compare(benchmark: dict, external_data: dict,
-                properties: tuple) -> str:
+    def compare(self, comparison: Comparison, properties: tuple) -> str:
         return None
-
 
 class CsvComparator(Comparator):
 
-    def __init__(self):
+    def __init__(self, flatten_visual=False):
         super().__init__()
+        self.flatten_visual = flatten_visual
 
-    def compare(benchmark: dict, external_data: dict,
-                properties: tuple) -> str:
-        # TODO
-        return None
+    def build_row_column_label(self, rows, columns, name, basis, method, data_id):
+        rl, cl = [], []
+        if "name" in rows:
+            rl.append(name)
+        else:
+            cl.append(name)
+        if "basis" in rows:
+            rl.append(basis)
+        else:
+            cl.append(basis)
+        if "method" in rows:
+            rl.append(method)
+        else:
+            cl.append(method)
+        if "data_id" in rows:
+            rl.append(data_id)
+        else:
+            cl.append(data_id)
+
+        return "///".join(rl), "///".join(cl)
+
+    def compare(self, comparison: Comparison, columns: tuple, prop: str, filepath: str, formatter=None, delimiter=";"):
+        all_fields = ["name", "basis", "method", "data_id"]
+        columns = [s.lower().strip() for s in columns]
+        rows = [s for s in all_fields if s not in columns]
+        column_labels = set()
+        row_labels = set()
+        if formatter == None:
+            formatter = StdFormatter()
+
+        # Build rows and columns
+        for name in comparison:
+            for basis in (d := comparison[name]):
+                for method in (d :=[basis]):
+                    if prop not in d[method]:
+                        continue
+                    for data_id in (d := d[method]):
+                        rl, cl = self.build_row_column_label(rows, columns, name, basis, method, data_id)
+                        column_labels.append(cl)
+                        row_labels.append(rl)
+        column_labels = sorted(list(column_labels))
+        row_labels = sorted(list(row_labels))
+
+        data = numpy.zeros((len(row_labels), len(column_labels)), dtype=str)
+
+        for name in comparison:
+            for basis in (d := comparison[name]):
+                for method in (d := d[basis]):
+                    if prop not in d[method]:
+                        continue
+                    for data_id in (d := d[method]):
+                        val = d[data_id]
+                        rl, cl = self.build_row_column_label(rows, columns, name, basis, method, data_id)
+                        ri = row_labels.index(rl)
+                        ci = column_labels.index(cl)
+                        data[ri, ci] = formatter.format_datapoint(val, prop)
+
+        csv_list = [delimiter.join([""].extend(column_labels))]
+        for i, rl in enumerate(row_labels):
+            csv_list.append(rl + delimiter + delimiter.join(data[i]))
+
+        print("\n".join(csv_list))
+        quit()
+
+        with open(filepath, "w") as f:
+            f.write("\n".join(csv_list))
+
+
+
