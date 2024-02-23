@@ -19,7 +19,9 @@ class StdFormatter(Formatter):
     def format_datapoint(self, val, proptype):
         if isinstance(val, str):
             return val
-        if isinstance(val, (int, float, complex)):
+        elif isinstance(val, (int, float, complex)):
             return str(round(val, self.n_decimals))
-        if hasattr(val, '__iter__'):  # dict, set, list, tuple, ...
+        elif val is None:
+            return "None"
+        elif hasattr(val, '__iter__'):  # dict, set, list, tuple, ...
             return ", ".join(self.format_datapoint(v, proptype) for v in val)
