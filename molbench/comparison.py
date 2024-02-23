@@ -9,19 +9,73 @@ name -> basis -> method -> property -> id/path
 """
 
 import molbench.logger as log
-from .formatting import StdFormatter
-from collections import defaultdict
-
-# XXX: Statt filepath filehandler übergeben überall
-# -> mehr flexibilität
 
 
 class Comparison(dict):
+    """
+    structure of the nested comparison dict:
+    - name / molkey
+    - arbitrary number of user defined sort keys used in the provided order
+    - type of the property (energy, ...)
+    - data_id to avoid overwriting data (benchmark_id or the key used by the
+      external parser to uniquely identify the individual read out files)
+    """
+    _data_separators = ("basis", "method")
 
-    def __init__(self):
+    def __init__(self, data_separators: tuple[str] = None) -> None:
+        if data_separators is not None:
+            self._data_separators = tuple(data_separators)
         super().__init__()
 
+    @property
+    def data_separators(self):
+        return self._data_separators
+
+    def walk_property(self, property):
+        return self._walk(self, desired_key=property)
+
+    def walk_values(self):
+        """walk all values that are no dicts"""
+        return self._walk_values(self)
+
+    @staticmethod
+    def _walk_values(indict: dict, prev_keys: list = None):
+        """Walk the arbitrarily nested dictionary."""
+        if prev_keys is None:
+            prev_keys = []
+        if isinstance(indict, dict):
+            for key, val in indict.items():
+                if isinstance(val, dict):
+                    for d in Comparison._walk(val, prev_keys + [key]):
+                        yield d
+                else:
+                    yield prev_keys + [key], val
+
+    @staticmethod
+    def _walk_key(indict: dict, desired_key, prev_keys: list = None):
+        """Walk the arbitrarily nested dictionary until the desired key is
+           found. Return the sequence of keys to reach the value that
+           corresponds to the desired key."""
+        if prev_keys is None:
+            prev_keys = []
+        if isinstance(indict, dict):
+            for key, val in indict.items():
+                if key == desired_key:
+                    yield key + [desired_key], val
+                elif isinstance(val, dict):
+                    for d in Comparison._walk_key(val, desired_key,
+                                                  prev_keys + [key]):
+                        yield d
+
     def add_benchmark(self, benchmark: dict, benchmark_id: str) -> None:
+        """
+        Read in a benchmark of the following structure:
+        {name: {..., 'properties': {_: {
+            'basis': val,..., 'type': proptype1, value: 42
+        }}}}
+        """
+        # XXX: 'type' and 'value' are benchmark specific
+        # -> could add both as argument to the function
         if isinstance(benchmark, Comparison):
             log.error("Cannot parse a Comparison as a benchmark.")
             return
@@ -30,146 +84,59 @@ class Comparison(dict):
             if not properties:  # key does not exist or prop dict is empty
                 continue
             for prop in properties.values():
-                basis = prop.get("basis", None)
-                method = prop.get("method", None)
+                separators = [prop.get(key, None)
+                              for key in self.data_separators]
                 proptype = prop.get("type", None)
                 value = prop.get("value", None)
-                if basis is None or method is None or proptype is None or \
+                if proptype is None or any(v is None for v in separators) or \
                         value is None:
                     continue
                 if name not in self:
                     self[name] = {}
-                if basis not in (d := self[name]):
-                    d[basis] = {}
-                if method not in (d := d[basis]):
-                    d[method] = {}
-                if proptype not in (d := d[method]):
+                d = self[name]
+                for separator in separators:
+                    if separator not in d:
+                        d[separator] = {}
+                    d = d[separator]
+                if proptype not in d:
                     d[proptype] = {}
                 if benchmark_id in (d := d[proptype]):
                     log.warning("Benchmark ID is not unique. Found conflicting"
-                                f" entry for {name}, {basis}, {method} and "
-                                f"{proptype}. Overwriting the exisiting value",
-                                Comparison)
+                                f" entry for {separators} and {proptype}."
+                                "Overwriting the exisiting value", Comparison)
                 d[benchmark_id] = value
 
     def add_external(self, external: dict) -> None:
+        """
+        Read in external data of the following structure:
+        {data_separator1: val, data_separator2: val, ...,
+         'data': {proptype1: val, proptype2: val, ...}}
+        """
+        # XXX: 'name' and 'data' are external specific
+        # -> could add them as arguments to the function
         if isinstance(external, Comparison):
             log.error("Cannot parse a Comparison as external data.")
             return
         for outfile, metadata in external.items():
-            basis = metadata.get("basis", None)
-            method = metadata.get("method", None)
             name = metadata.get("name", None)
             data = metadata.get("data", None)
-            if basis is None or method is None or name is None or data is None:
+            separators = [metadata.get(key, None)
+                          for key in self.data_separators]
+            if name is None or data is None or \
+                    any(s is None for s in separators):
                 continue
             if name not in self:
                 self[name] = {}
-            if basis not in (d := self[name]):
-                d[basis] = {}
-            if method not in (d := d[basis]):
-                d[method] = {}
+            d = self[name]
+            for separator in separators:
+                if separator not in d:
+                    d[separator] = {}
+                d = d[separator]
             for proptype, value in data.items():
-                if proptype not in d[method]:
-                    d[method][proptype] = {}
-                if outfile in d[method][proptype]:
+                if proptype not in d:
+                    d[proptype] = {}
+                if outfile in d[proptype]:
                     log.warning("Overwriting already existing value for "
-                                f"{name}, {basis}, {method} and {proptype}.",
+                                f"{name}, {separators} and {proptype}.",
                                 Comparison)
-                d[method][proptype][outfile] = value
-
-
-class Comparator:
-    """
-    Parent class for a comparison between external data and a benchmark set.
-
-    This class is used to perform comparisons between external data and a
-    benchmark set. Any class that is supposed to perform such comparisons must
-    inherit from this class.
-
-    Methods
-    -------
-    compare(benchmark: dict, external_data: dict, properties: tuple) -> str
-        Compare benchmark data with external data and return file contents of
-        the comparison.
-
-    Attributes
-    ----------
-    None
-    """
-
-    def __init__(self):
-        pass
-
-    def compare(self, comparison: Comparison, properties: tuple) -> str:
-        return None
-
-
-class CsvComparator(Comparator):
-
-    def __init__(self, flatten_visual=False):
-        super().__init__()
-        self.flatten_visual = flatten_visual
-
-    def build_row_column_label(self, columns, name, basis, method, data_id):
-        row_l, column_l = [], []
-        if "name" in columns:
-            column_l.append(name)
-        else:
-            row_l.append(name)
-        if "basis" in columns:
-            column_l.append(basis)
-        else:
-            row_l.append(basis)
-        if "method" in columns:
-            column_l.append(method)
-        else:
-            row_l.append(method)
-        if "data_id" in columns:
-            column_l.append(data_id)
-        else:
-            row_l.append(data_id)
-
-        return "///".join(row_l), "///".join(column_l)
-
-    def compare(self, comparison: Comparison, columns: tuple, prop: str,
-                filepath: str, formatter=None, delimiter=";"):
-        columns = [s.lower().strip() for s in columns]
-        column_labels = set()
-        row_labels = set()
-        if formatter is None:
-            formatter = StdFormatter()
-
-        data = defaultdict(list)
-        column_l = []
-        row_l = []
-        # Build rows and columns
-        for name, moldata in comparison.items():
-            for basis, basisdata in moldata.items():
-                for method, methoddata in basisdata.items():
-                    if prop not in methoddata:
-                        continue
-                    for data_id, value in methoddata.items():
-                        row_l, column_l = self.build_row_column_label(
-                            columns, name, basis, method, data_id
-                        )
-                        column_labels.add(column_l)
-                        row_labels.add(row_l)
-                        data[(column_l, row_l)].append(value)
-        column_labels = sorted(column_labels)
-        row_labels = sorted(row_labels)
-
-        # XXX: Gibt es Lücken in den Daten?
-        csv_list = [delimiter.join(["", *column_labels])]
-        for row_l in row_labels:
-            row = []
-            for column_l in column_labels:
-                value = data.get((column_l, row_l), None)
-                row.append(formatter.format_datapoint(value, prop))
-            csv_list.append(delimiter.join([row_l, *row]))
-
-        print("\n".join(csv_list))
-        quit()
-
-        with open(filepath, "w") as f:
-            f.write("\n".join(csv_list))
+                d[proptype][outfile] = value
