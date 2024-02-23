@@ -9,13 +9,16 @@ name -> basis -> method -> property -> id/path
 """
 
 import molbench.logger as log
-from .formatter import StdFormatter
+from .formatting import StdFormatter
+from collections import defaultdict
+
+# XXX: Statt filepath filehandler übergeben überall
+# -> mehr flexibilität
+
 
 class Comparison(dict):
 
     def __init__(self):
-        # this way we could avoid that some values are passed to the dict
-        # upon creation
         super().__init__()
 
     def add_benchmark(self, benchmark: dict, benchmark_id: str) -> None:
@@ -50,7 +53,7 @@ class Comparison(dict):
                 d[benchmark_id] = value
 
     def add_external(self, external: dict) -> None:
-        if isinstance(benchmark, Comparison):
+        if isinstance(external, Comparison):
             log.error("Cannot parse a Comparison as external data.")
             return
         for outfile, metadata in external.items():
@@ -101,78 +104,72 @@ class Comparator:
     def compare(self, comparison: Comparison, properties: tuple) -> str:
         return None
 
+
 class CsvComparator(Comparator):
 
     def __init__(self, flatten_visual=False):
         super().__init__()
         self.flatten_visual = flatten_visual
 
-    def build_row_column_label(self, rows, columns, name, basis, method, data_id):
-        rl, cl = [], []
-        if "name" in rows:
-            rl.append(name)
+    def build_row_column_label(self, columns, name, basis, method, data_id):
+        row_l, column_l = [], []
+        if "name" in columns:
+            column_l.append(name)
         else:
-            cl.append(name)
-        if "basis" in rows:
-            rl.append(basis)
+            row_l.append(name)
+        if "basis" in columns:
+            column_l.append(basis)
         else:
-            cl.append(basis)
-        if "method" in rows:
-            rl.append(method)
+            row_l.append(basis)
+        if "method" in columns:
+            column_l.append(method)
         else:
-            cl.append(method)
-        if "data_id" in rows:
-            rl.append(data_id)
+            row_l.append(method)
+        if "data_id" in columns:
+            column_l.append(data_id)
         else:
-            cl.append(data_id)
+            row_l.append(data_id)
 
-        return "///".join(rl), "///".join(cl)
+        return "///".join(row_l), "///".join(column_l)
 
-    def compare(self, comparison: Comparison, columns: tuple, prop: str, filepath: str, formatter=None, delimiter=";"):
-        all_fields = ["name", "basis", "method", "data_id"]
+    def compare(self, comparison: Comparison, columns: tuple, prop: str,
+                filepath: str, formatter=None, delimiter=";"):
         columns = [s.lower().strip() for s in columns]
-        rows = [s for s in all_fields if s not in columns]
         column_labels = set()
         row_labels = set()
-        if formatter == None:
+        if formatter is None:
             formatter = StdFormatter()
 
+        data = defaultdict(list)
+        column_l = []
+        row_l = []
         # Build rows and columns
-        for name in comparison:
-            for basis in (d := comparison[name]):
-                for method in (d :=[basis]):
-                    if prop not in d[method]:
+        for name, moldata in comparison.items():
+            for basis, basisdata in moldata.items():
+                for method, methoddata in basisdata.items():
+                    if prop not in methoddata:
                         continue
-                    for data_id in (d := d[method]):
-                        rl, cl = self.build_row_column_label(rows, columns, name, basis, method, data_id)
-                        column_labels.append(cl)
-                        row_labels.append(rl)
-        column_labels = sorted(list(column_labels))
-        row_labels = sorted(list(row_labels))
+                    for data_id, value in methoddata.items():
+                        row_l, column_l = self.build_row_column_label(
+                            columns, name, basis, method, data_id
+                        )
+                        column_labels.add(column_l)
+                        row_labels.add(row_l)
+                        data[(column_l, row_l)].append(value)
+        column_labels = sorted(column_labels)
+        row_labels = sorted(row_labels)
 
-        data = numpy.zeros((len(row_labels), len(column_labels)), dtype=str)
-
-        for name in comparison:
-            for basis in (d := comparison[name]):
-                for method in (d := d[basis]):
-                    if prop not in d[method]:
-                        continue
-                    for data_id in (d := d[method]):
-                        val = d[data_id]
-                        rl, cl = self.build_row_column_label(rows, columns, name, basis, method, data_id)
-                        ri = row_labels.index(rl)
-                        ci = column_labels.index(cl)
-                        data[ri, ci] = formatter.format_datapoint(val, prop)
-
-        csv_list = [delimiter.join([""].extend(column_labels))]
-        for i, rl in enumerate(row_labels):
-            csv_list.append(rl + delimiter + delimiter.join(data[i]))
+        # XXX: Gibt es Lücken in den Daten?
+        csv_list = [delimiter.join(["", *column_labels])]
+        for row_l in row_labels:
+            row = []
+            for column_l in column_labels:
+                value = data.get((column_l, row_l), None)
+                row.append(formatter.format_datapoint(value, prop))
+            csv_list.append(delimiter.join([row_l, *row]))
 
         print("\n".join(csv_list))
         quit()
 
         with open(filepath, "w") as f:
             f.write("\n".join(csv_list))
-
-
-

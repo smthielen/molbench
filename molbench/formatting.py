@@ -9,15 +9,17 @@ class Formatter:
     def format_datapoint(self, dp, proptype):
         return None
 
+
 class StdFormatter(Formatter):
 
-    def __init__(self):
+    def __init__(self, n_decimals: int = 5) -> None:
         super().__init__()
+        self.n_decimals = n_decimals
 
-    def format_datapoint(self, dp, proptype):
-        if isinstance(dp, str):
-            return dp
-        if isinstance(dp, (int, float, complex)):
-            return str(round(dp, 5))
-        if hasattr(dp, '__iter__') or hasattr(dp, '__getitem__'):
-            return ", ".join(dp)
+    def format_datapoint(self, val, proptype):
+        if isinstance(val, str):
+            return val
+        if isinstance(val, (int, float, complex)):
+            return str(round(val, self.n_decimals))
+        if hasattr(val, '__iter__'):  # dict, set, list, tuple, ...
+            return ", ".join(self.format_datapoint(v, proptype) for v in val)
