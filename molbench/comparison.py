@@ -8,7 +8,8 @@ name -> basis -> method -> property -> id/path
 
 """
 
-import molbench.logger as log
+from . import logger as log
+import numpy
 
 
 class Comparison(dict):
@@ -31,8 +32,20 @@ class Comparison(dict):
     def data_separators(self):
         return self._data_separators
 
+    @property
+    def structure(self):
+        return ("name", *self.data_separators, "proptype", "data_id")
+
+    def _import_value(self, value):
+        # XXX: convert everything to numpy array?
+        #      or rather do this already in import_benchmark / external?
+        if isinstance(value, (int, float, complex)):
+            return value
+        else:
+            return numpy.array(value)
+
     def walk_property(self, property):
-        return self._walk(self, desired_key=property)
+        return self._walk_key(self, desired_key=property)
 
     def walk_values(self):
         """walk all values that are no dicts"""
@@ -46,7 +59,7 @@ class Comparison(dict):
         if isinstance(indict, dict):
             for key, val in indict.items():
                 if isinstance(val, dict):
-                    for d in Comparison._walk(val, prev_keys + [key]):
+                    for d in Comparison._walk_values(val, prev_keys + [key]):
                         yield d
                 else:
                     yield prev_keys + [key], val
@@ -61,7 +74,7 @@ class Comparison(dict):
         if isinstance(indict, dict):
             for key, val in indict.items():
                 if key == desired_key:
-                    yield key + [desired_key], val
+                    yield prev_keys + [desired_key], val
                 elif isinstance(val, dict):
                     for d in Comparison._walk_key(val, desired_key,
                                                   prev_keys + [key]):
@@ -104,7 +117,7 @@ class Comparison(dict):
                     log.warning("Benchmark ID is not unique. Found conflicting"
                                 f" entry for {separators} and {proptype}."
                                 "Overwriting the exisiting value", Comparison)
-                d[benchmark_id] = value
+                d[benchmark_id] = self._import_value(value)
 
     def add_external(self, external: dict) -> None:
         """
@@ -139,4 +152,4 @@ class Comparison(dict):
                     log.warning("Overwriting already existing value for "
                                 f"{name}, {separators} and {proptype}.",
                                 Comparison)
-                d[proptype][outfile] = value
+                d[proptype][outfile] = self._import_value(value)

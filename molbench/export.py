@@ -25,7 +25,7 @@ class Exporter:
     def __init__(self):
         pass
 
-    def compare(self, comparison: Comparison, properties: tuple) -> str:
+    def export(self, comparison: Comparison, properties: tuple) -> str:
         return None
 
 
@@ -52,10 +52,11 @@ class CsvExporter(Exporter):
         else:
             row_l.append(data_id)
 
+        # XXX: is this the correct separator???
         return "///".join(row_l), "///".join(column_l)
 
-    def compare(self, comparison: Comparison, columns: tuple, prop: str,
-                filepath: str, formatter=None, delimiter=";"):
+    def export(self, comparison: Comparison, columns: tuple, prop: str,
+               filepath: str, formatter=None, delimiter=";"):
         columns = [s.lower().strip() for s in columns]
         column_labels = set()
         if formatter is None:
