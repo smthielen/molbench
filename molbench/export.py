@@ -80,8 +80,5 @@ class CsvExporter(Exporter):
                 row.append(formatter.format_datapoint(value, prop))
             csv_list.append(delimiter.join([row_l, *row]))
 
-        print("\n".join(csv_list))
-        quit()
-
         with open(filepath, "w") as f:
             f.write("\n".join(csv_list))

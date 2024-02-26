@@ -89,7 +89,7 @@ class Statistics:
                 if compatible:
                     interest_values.append((keys, value))
                     assigned_interest.append(i)
-            for i in assigned_interest:
+            for i in reversed(assigned_interest):
                 del interest_pool[i]
             return interest_values
 
@@ -118,5 +118,70 @@ class Statistics:
                 signed_errors[ref_keys][interest_keys] = values - ref
         return signed_errors
 
-    def evaluate(self, signed_errors: numpy.ndarray):
-        pass
+    def evaluate(self, signed_errors: dict, *statistical_error_measures,
+                 assign: callable = None, proptype: str = None) -> dict:
+        if "all" in statistical_error_measures:
+            statistical_error_measures = set(statistical_error_measures)
+            statistical_error_measures.update(
+                ("mse", "sde", "mae", "min", "max", "median_se")
+            )
+            statistical_error_measures.remove("all")
+
+        if assign is None:
+            if proptype is None:
+                log.error("No assign callable or proptype given.", self)
+                return
+            assign = self.assign_by_proptye(proptype)
+
+        ret = {}
+        for error_measure in statistical_error_measures:
+            callback = getattr(self, error_measure, None)
+            if callback is None:
+                log.error("Can not evalute the unknown error measure "
+                          f"{error_measure}.", self, ValueError)
+                continue
+            ret[error_measure] = callback(signed_errors, assign)
+        return ret
+
+    @staticmethod
+    def assign_by_proptye(proptype: str):
+        def assign(refkeys: tuple, interestkeys: tuple) -> bool:
+            return refkeys[-2] == proptype and interestkeys[-2] == proptype
+        return assign
+
+    @staticmethod
+    def _collect_errors(signed_errors: dict, assign: callable) -> list:
+        return [value for refkeys, interest in signed_errors.items()
+                for interestkeys, value in interest.items()
+                if assign(refkeys, interestkeys)]
+
+    @staticmethod
+    def mse(signed_errors: dict, assign: callable):
+        errors = Statistics._collect_errors(signed_errors, assign)
+        return numpy.array(errors).mean(axis=0)
+
+    @staticmethod
+    def sde(signed_errors: dict, assign: callable):
+        errors = Statistics._collect_errors(signed_errors, assign)
+        return numpy.array(errors).std(axis=0)
+
+    @staticmethod
+    def mae(signed_errors: dict, assign: callable):
+        errors = Statistics._collect_errors(signed_errors, assign)
+        return numpy.sum(numpy.absolute(e) for e in errors) / len(errors)
+
+    @staticmethod
+    def min(signed_errors: dict, assign: callable):
+        errors = Statistics._collect_errors(signed_errors, assign)
+        return numpy.array(errors).min(axis=0)
+
+    @staticmethod
+    def max(signed_errors: dict, assign: callable):
+        errors = Statistics._collect_errors(signed_errors, assign)
+        return numpy.array(errors).max(axis=0)
+
+    @staticmethod
+    def median_se(signed_errors: dict, assign: callable):
+        # median signed error
+        errors = Statistics._collect_errors(signed_errors, assign)
+        return numpy.median(numpy.array(errors), axis=0)
