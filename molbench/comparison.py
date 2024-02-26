@@ -37,9 +37,7 @@ class Comparison(dict):
         return ("name", *self.data_separators, "proptype", "data_id")
 
     def _import_value(self, value):
-        # XXX: convert everything to numpy array?
-        #      or rather do this already in import_benchmark / external?
-        if isinstance(value, (int, float, complex)):
+        if isinstance(value, (int, float, complex, str)):
             return value
         else:
             return numpy.array(value)

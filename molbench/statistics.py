@@ -16,7 +16,7 @@ class Statistics:
     def data(self):
         return self._data
 
-    def compare(self, interest: dict, reference: dict) -> numpy.ndarray:
+    def compare(self, interest: dict, reference: dict) -> dict:
         """Compare two datasets and return interest - ref"""
         # Rules for the keys in the description:
         # - keys that appear in both descriptions are clearly defined and
@@ -26,16 +26,9 @@ class Statistics:
         #   be assigned to ref OR interest, this automatically should also
         #   restrict the other space: ref with method = FCI -> all FCI values
         #   will be used as ref therefore not available as interest.
-        #  XXX
-        #   * For assigning interest vals to ref vals, no restriction should
+        #   For assigning interest vals to ref vals, no restriction should
         #   be applied to the unrestricted subset -> compare the FCI values
         #   with all available other methods.
-        #   * This would be the desired variant for method, but for basis sets
-        #   it would make more sense to enforce the basis sets to be the same
-        #   * Alternatively, one could exclude the specified value in the
-        #   other subset which is partially already achieved by assigning
-        #   each value to one of the subsets
-        #  XXX
         # - keys that don't appear in either of the dictionaries have to be
         #   equal: if basis is not specified in either description
         #   the basis has to be the same for reference and interest value.
@@ -47,21 +40,19 @@ class Statistics:
         #     not given: allow all -> special
         #   * name:
         #     given twice: fixed
-        #     given once: have to be equal! -> special
+        #     given once: allow all
         #     not given: have to be equal
         #   * proptype:
         #     given twice: fixed
-        #     given_once: have to be equal -> special
+        #     given_once: allow all
         #     not given: have to be equal
 
         common_keys = interest.keys() & reference.keys()
-        fixed_interest_separators = {interest[k] for k in common_keys
-                                     if k in interest}
+        fixed_interest_separators = {k: interest[k] for k in common_keys}
         all_separators = self.data.structure
 
         def identify(separators) -> str | None:
-            local_dict = {k: v for k, v in zip(self.data.structure,
-                                               separators)}
+            local_dict = {k: v for k, v in zip(all_separators, separators)}
             if reference.items() <= local_dict.items():
                 return "reference"
             elif interest.items() <= local_dict.items():
@@ -73,18 +64,18 @@ class Statistics:
                                 interest_pool: list) -> list:
             separators = []
             for ref_sep, sep in zip(ref_separators, all_separators):
-                # key already fixed or data_id special case
-                if sep in fixed_interest_separators or sep == "data_id":
+                # key already fixed in the input
+                if sep in fixed_interest_separators:
+                    separators.append(fixed_interest_separators[sep])
+                # data_id special case: if not given twice -> allow all
+                # or key given once -> allow all
+                elif sep == "data_id" or sep in reference:
                     separators.append(None)
-                # name + property special case or key not given
-                # -> have to be equal
-                elif sep in ["name", "proptype"] or (sep not in interest and
-                                                     sep not in reference):
-                    separators.append(ref_sep)
+                elif sep in interest:  # defined
+                    separators.append(interest[sep])
                 else:
-                    # key only appears once
-                    # XXX this currently allows all values
-                    separators.append(None)
+                    # key not given -> has to be the same as in reference
+                    separators.append(ref_sep)
             # filter out all not compatible values
             interest_values = []
             assigned_interest = []
@@ -104,7 +95,8 @@ class Statistics:
 
         return self._compare(identify, get_interest_values)
 
-    def _compare(self, identify: callable, get_interest_values: callable):
+    def _compare(self, identify: callable,
+                 get_interest_values: callable) -> dict:
         reference = []
         interest = []
         for keys, value in self.data.walk_values():
@@ -119,8 +111,6 @@ class Statistics:
                 log.error(f"Could not assign a role to {keys}.", self,
                           ValueError)
 
-        # XXX: How to store the signed errors? if we don't keep the keys
-        #      information is lost... do we want to keep all the information?
         signed_errors = defaultdict(dict)
         for (ref_keys, ref) in reference:
             interest_values = get_interest_values(ref_keys, interest)
