@@ -5,7 +5,12 @@ import numpy
 
 
 class Statistics:
-    """"""
+    """
+    Class for statistical evaluation of a data set.
+    """
+
+    available_error_measures = {}
+
     def __init__(self, data: Comparison) -> None:
         if not isinstance(data, Comparison):
             log.error("Data for statistics evaluation has to be provided as "
@@ -17,35 +22,37 @@ class Statistics:
         return self._data
 
     def compare(self, interest: dict, reference: dict) -> dict:
-        """Compare two datasets and return interest - ref"""
-        # Rules for the keys in the description:
-        # - keys that appear in both descriptions are clearly defined and
-        #   therefore can be clearly mapped onto each other
-        # - keys that only appear in one of the descriptions only restrict one
-        #   property (basis...) in one of the subsets. Since values can only
-        #   be assigned to ref OR interest, this automatically should also
-        #   restrict the other space: ref with method = FCI -> all FCI values
-        #   will be used as ref therefore not available as interest.
-        #   For assigning interest vals to ref vals, no restriction should
-        #   be applied to the unrestricted subset -> compare the FCI values
-        #   with all available other methods.
-        # - keys that don't appear in either of the dictionaries have to be
-        #   equal: if basis is not specified in either description
-        #   the basis has to be the same for reference and interest value.
-        #   all found basis sets are considered.
-        # - special keys for assigning ref and interest values:
-        #   * data_id:
-        #     given twice: fixed
-        #     given once: allow all
-        #     not given: allow all -> special
-        #   * name:
-        #     given twice: fixed
-        #     given once: allow all
-        #     not given: have to be equal
-        #   * proptype:
-        #     given twice: fixed
-        #     given_once: allow all
-        #     not given: have to be equal
+        """
+        Computes the signed error for a subset of data as
+        interest_value - reference_value.
+        The subset of data for wich to compute the signed error has to be
+        provided as two descriptive dictionaries that define which values in
+        the dataset should be used as reference and interest values. The keys
+        in the dictionary have to match the keys used in the Comparison class
+        to separate the data points. Note that all values are first probed to
+        be a reference value. Therefore providing an empty reference
+        description will result in all values being assigned as reference and
+        thus no signed errors will be computed in this case. In a second step,
+        reference and interest values are mapped onto each other.
+        Thereby, we apply the following rules to the provided descriptions:
+        1) If a descriptor ('method', 'basis', ...) is given in both
+           dictionaries, the corresponding values are fixed for interest and
+           reference -> the inpiut data provides a clear mapping that we don't
+           interfere with.
+        2) If a descriptor is given in one of the dictionaries, it restricts
+           the data in one of the subsets but no further restriction is applied
+           to the other subset, e.g., defining the 'method' in the reference
+           dictionary restricts the reference data to the given method, but
+           compares the reference values with all available methods in the
+           interest data subset.
+        3) If a descriptor is not given in either of the dictionaries, the
+           descriptor of interest and reference values have to be equal, e.g.,
+           if 'basis' is not given, only values with equal 'basis' descriptor
+           will be compared. An exception to the this rule is the 'data_id'
+           descriptor. Since 'data_id' is used to avoid conflicting entries in
+           the data set, the 'data_id' descriptor is not forced to be the same
+           if no 'data_id' is given in the input.
+        """
 
         common_keys = interest.keys() & reference.keys()
         fixed_interest_separators = {k: interest[k] for k in common_keys}
@@ -120,10 +127,23 @@ class Statistics:
 
     def evaluate(self, signed_errors: dict, *statistical_error_measures,
                  assign: callable = None, proptype: str = None) -> dict:
+        """
+        Evaluates statistical error measures for the given set of
+        signed errors. Statistical error measures can be requested by
+        their name, e.g., 'mse' for the mean signed error.
+        Optionally, a callable can be provided to determine whether a specific
+        signed error should be included in the statistical evaluation.
+        By default the signed errors are filtered according to the property
+        type ('energy', ...), which can be provided as another optional
+        argument.
+        """
+        statistical_error_measures = [
+            measure.lower() for measure in statistical_error_measures
+        ]
         if "all" in statistical_error_measures:
             statistical_error_measures = set(statistical_error_measures)
             statistical_error_measures.update(
-                ("mse", "sde", "mae", "min", "max", "median_se")
+                self.available_error_measures.keys()
             )
             statistical_error_measures.remove("all")
 
@@ -135,7 +155,7 @@ class Statistics:
 
         ret = {}
         for error_measure in statistical_error_measures:
-            callback = getattr(self, error_measure, None)
+            callback = self.available_error_measures.get(error_measure, None)
             if callback is None:
                 log.error("Can not evalute the unknown error measure "
                           f"{error_measure}.", self, ValueError)
@@ -144,44 +164,68 @@ class Statistics:
         return ret
 
     @staticmethod
-    def assign_by_proptye(proptype: str):
+    def assign_by_proptye(intproptype: str, refproptype: str = None):
+        if refproptype is None:
+            refproptype = intproptype
+
         def assign(refkeys: tuple, interestkeys: tuple) -> bool:
-            return refkeys[-2] == proptype and interestkeys[-2] == proptype
+            return (
+                refkeys[-2] == refproptype and interestkeys[-2] == intproptype
+            )
         return assign
 
-    @staticmethod
-    def _collect_errors(signed_errors: dict, assign: callable) -> list:
-        return [value for refkeys, interest in signed_errors.items()
-                for interestkeys, value in interest.items()
-                if assign(refkeys, interestkeys)]
 
-    @staticmethod
-    def mse(signed_errors: dict, assign: callable):
-        errors = Statistics._collect_errors(signed_errors, assign)
-        return numpy.array(errors).mean(axis=0)
+def register_as_error_measure(function):
+    """Decorator to register a function as error measure for statistical
+       data evaluation.
+    """
+    Statistics.available_error_measures[function.__name__.lower()] = function
+    return function
 
-    @staticmethod
-    def sde(signed_errors: dict, assign: callable):
-        errors = Statistics._collect_errors(signed_errors, assign)
-        return numpy.array(errors).std(axis=0)
 
-    @staticmethod
-    def mae(signed_errors: dict, assign: callable):
-        errors = Statistics._collect_errors(signed_errors, assign)
-        return numpy.sum(numpy.absolute(e) for e in errors) / len(errors)
+def _collect_errors(signed_errors: dict, assign: callable) -> list:
+    return [value for refkeys, interest in signed_errors.items()
+            for interestkeys, value in interest.items()
+            if assign(refkeys, interestkeys)]
 
-    @staticmethod
-    def min(signed_errors: dict, assign: callable):
-        errors = Statistics._collect_errors(signed_errors, assign)
-        return numpy.array(errors).min(axis=0)
 
-    @staticmethod
-    def max(signed_errors: dict, assign: callable):
-        errors = Statistics._collect_errors(signed_errors, assign)
-        return numpy.array(errors).max(axis=0)
+@register_as_error_measure
+def mse(signed_errors: dict, assign: callable):
+    """Computes the mean signed error."""
+    errors = _collect_errors(signed_errors, assign)
+    return numpy.array(errors).mean(axis=0)
 
-    @staticmethod
-    def median_se(signed_errors: dict, assign: callable):
-        # median signed error
-        errors = Statistics._collect_errors(signed_errors, assign)
-        return numpy.median(numpy.array(errors), axis=0)
+
+@register_as_error_measure
+def sde(signed_errors: dict, assign: callable):
+    """Computes the standard deviation."""
+    errors = _collect_errors(signed_errors, assign)
+    return numpy.array(errors).std(axis=0)
+
+
+@register_as_error_measure
+def mae(signed_errors: dict, assign: callable):
+    """Computes the mean absolute error."""
+    errors = _collect_errors(signed_errors, assign)
+    return numpy.sum(numpy.absolute(e) for e in errors) / len(errors)
+
+
+@register_as_error_measure
+def min(signed_errors: dict, assign: callable):
+    """Computes the minimal signed error."""
+    errors = _collect_errors(signed_errors, assign)
+    return numpy.array(errors).min(axis=0)
+
+
+@register_as_error_measure
+def max(signed_errors: dict, assign: callable):
+    """Computes the maximal signed error."""
+    errors = _collect_errors(signed_errors, assign)
+    return numpy.array(errors).max(axis=0)
+
+
+@register_as_error_measure
+def median_se(signed_errors: dict, assign: callable):
+    """Computes the median signed error."""
+    errors = _collect_errors(signed_errors, assign)
+    return numpy.median(numpy.array(errors), axis=0)

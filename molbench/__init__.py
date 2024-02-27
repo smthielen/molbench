@@ -70,13 +70,13 @@ from .benchmark_handler import load_benchmark
 from .input_constructor import InputConstructor, TemplateConstructor
 from .bash_wrapper import create_bash_files, make_send_script
 from .comparison import Comparison
-from .statistics import Statistics
+from .statistics import Statistics, register_as_error_measure
 from .export import Exporter, CsvExporter
 
 
 __all__ = ["config", "load_benchmark", "InputConstructor",
            "TemplateConstructor", "create_bash_files", "make_send_script",
-           "Comparison", "Statistics",
+           "Comparison", "Statistics", "register_as_error_measure",
            "Exporter", "CsvExporter"]
 __version__ = "0.0.1"
 __authors__ = ["Linus Bjarne Dittmer", "Jonas Leitner"]
