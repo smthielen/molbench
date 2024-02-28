@@ -52,13 +52,20 @@ class Statistics:
            descriptor. Since 'data_id' is used to avoid conflicting entries in
            the data set, the 'data_id' descriptor is not forced to be the same
            if no 'data_id' is given in the input.
+        Each value is only mapped onto a single reference value.
         """
 
-        common_keys = interest.keys() & reference.keys()
-        fixed_interest_separators = {k: interest[k] for k in common_keys}
+        identifier = self.identify(interest, reference)
+        interest_finder = self.get_interest_values(interest, reference)
+        return self._compare(identifier, interest_finder)
+
+    def identify(self, interest: dict, reference: dict) -> callable:
+        """Returns a callable to identify whether a value is a reference or
+           interest value.
+        """
         all_separators = self.data.structure
 
-        def identify(separators) -> str | None:
+        def _identify(separators) -> str | None:
             local_dict = {k: v for k, v in zip(all_separators, separators)}
             if reference.items() <= local_dict.items():
                 return "reference"
@@ -66,9 +73,18 @@ class Statistics:
                 return "interest"
             else:
                 return None
+        return _identify
 
-        def get_interest_values(ref_separators: list,
-                                interest_pool: list) -> list:
+    def get_interest_values(self, interest, reference) -> callable:
+        """Returns a callable that identifies the interest values that belong
+           to a given reference value.
+        """
+        common_keys = interest.keys() & reference.keys()
+        fixed_interest_separators = {k: interest[k] for k in common_keys}
+        all_separators = self.data.structure
+
+        def _get_interest_values(ref_separators: list,
+                                 interest_pool: list) -> list:
             separators = []
             for ref_sep, sep in zip(ref_separators, all_separators):
                 # key already fixed in the input
@@ -99,8 +115,7 @@ class Statistics:
             for i in reversed(assigned_interest):
                 del interest_pool[i]
             return interest_values
-
-        return self._compare(identify, get_interest_values)
+        return _get_interest_values
 
     def _compare(self, identify: callable,
                  get_interest_values: callable) -> dict:

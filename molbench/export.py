@@ -1,6 +1,7 @@
 from .comparison import Comparison
 from .formatting import StdFormatter
 from collections import defaultdict
+import typing
 
 
 class Exporter:
@@ -52,11 +53,10 @@ class CsvExporter(Exporter):
         else:
             row_l.append(data_id)
 
-        # XXX: is this the correct separator???
         return "///".join(row_l), "///".join(column_l)
 
     def export(self, comparison: Comparison, columns: tuple, prop: str,
-               filepath: str, formatter=None, delimiter=";"):
+               outfile: typing.IO, formatter=None, delimiter=";"):
         columns = [s.lower().strip() for s in columns]
         column_labels = set()
         if formatter is None:
@@ -80,5 +80,4 @@ class CsvExporter(Exporter):
                 row.append(formatter.format_datapoint(value, prop))
             csv_list.append(delimiter.join([row_l, *row]))
 
-        with open(filepath, "w") as f:
-            f.write("\n".join(csv_list))
+        outfile.write("\n".join(csv_list))

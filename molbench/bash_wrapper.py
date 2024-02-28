@@ -1,6 +1,7 @@
 import os
 import glob
 import subprocess
+import typing
 from . import logger as log
 from .functions import substitute_template
 from . import config
@@ -32,16 +33,18 @@ def create_bash_files(files: list, command: str) -> list:
 
 
 def make_send_script(bashfiles: list, send_command: str,
-                     sendscript_path: str):
+                     sendscript: typing.IO):
     send_command = substitute_template(send_command, config)
-    sendscript_content = """#!/bin/bash
-function cd_and_sbatch() {
-    local script_file=$1
-    local folder=$2
-    echo "Sending $script_file"
-    cd "$folder"
-    """ + send_command.strip() + """ "$script_file"
-    }\n\n"""
+    sendscript_content = (
+        "#!/bin/bash\n"
+        "function cd_and_sbatch() {\n"
+        "    local script_file=$1\n"
+        "    local folder=$2\n"
+        "    echo \"Sending $script_file\"\n"
+        "    cd \"$folder\"\n"
+        f"    {send_command.strip()} $script_file\n"
+        "}\n\n"
+    )
 
     for f in bashfiles:
         fpath = os.path.abspath(os.path.dirname(f))
@@ -50,5 +53,4 @@ function cd_and_sbatch() {
         addendum = f"cd_and_sbatch {infilename} {fpath}\n"
         sendscript_content += addendum
 
-    with open(sendscript_path, "w") as f:
-        f.write(sendscript_content)
+    sendscript.write(sendscript_content)

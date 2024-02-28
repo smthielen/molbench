@@ -72,11 +72,12 @@ from .bash_wrapper import create_bash_files, make_send_script
 from .comparison import Comparison
 from .statistics import Statistics, register_as_error_measure
 from .export import Exporter, CsvExporter
-from .external_parser import JSON_Parser
+from .external_parser import ExternalParser, JSON_Parser
 
 __all__ = ["config", "load_benchmark", "InputConstructor",
            "TemplateConstructor", "create_bash_files", "make_send_script",
            "Comparison", "Statistics", "register_as_error_measure",
-           "Exporter", "CsvExporter"]
+           "Exporter", "CsvExporter",
+           "ExternalParser", "JSON_Parser"]
 __version__ = "0.0.1"
 __authors__ = ["Linus Bjarne Dittmer", "Jonas Leitner"]

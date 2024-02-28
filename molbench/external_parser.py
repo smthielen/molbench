@@ -5,6 +5,7 @@ import os.path
 import numpy
 from . import logger as log
 import json
+import typing
 
 
 class ExternalParser:
@@ -25,12 +26,15 @@ class ExternalParser:
     ----------
     None
     """
-    _registry = {}
+    _registry: dict[str, 'ExternalParser'] = {}
 
     def __init_subclass__(cls) -> None:
         # store an instance of each chils class in _registry
         parser = cls.__name__.replace("_Parser", '')
         cls._registry[parser] = cls()
+
+    def parse_file(self, outfile: typing.IO) -> dict:
+        raise NotImplementedError()
 
     def load(self, filepath: str, suffix: str = 'out') -> dict:
         outfiles = self._fetch_all_outfiles(filepath, suffix)
@@ -38,18 +42,19 @@ class ExternalParser:
 
         data = {}
         for outf in outfiles:
-            suite = self._suite_from_outfile(outf)
+            outfile = open(outf, 'r')
+            suite = self._suite_from_outfile(outfile)
             extractor = metadata_extractors.get(suite, None)
             if extractor is None:
                 log.critical("No extractor available to find a suitable Parser"
                              f" for suite {suite}.")
             # contains all the relevant metadata, suite, method, etc
             # to determine which parser is needed
-            parser = extractor.find_parser(outf)
+            parser = extractor.find_parser(outfile)
             parser = self._registry.get(parser, None)
             if parser is None:
                 log.critical(f"No parser available for parsing {parser}.")
-            data[outf] = parser.parse_file(outf)
+            data[outf] = parser.parse_file(outfile)
         return data
 
     def _fetch_all_outfiles(self, path: str, suffix: str = 'out') -> list:
@@ -63,24 +68,23 @@ class ExternalParser:
 
         return outfiles
 
-    def _suite_from_outfile(self, outfile: str) -> str:
+    def _suite_from_outfile(self, outfile: typing.IO) -> str:
         # check JSON
         try:
-            json.load(open(outfile, 'r'))
+            json.load(outfile)
             return "JSON"
         except json.JSONDecodeError:
             pass
         # check QCHEM
-        with open(outfile, 'r') as f:
-            if any("Welcome to Q-Chem" in line for line in f):
-                return "QChem"
+        if any("Welcome to Q-Chem" in line for line in outfile):
+            return "QChem"
         log.critical(f"Could not determine a suite for outfile {outfile}.",
                      self)
 
 
 class QChem_MP2_Parser(ExternalParser):
 
-    def parse_file(self, outfile: str) -> dict:
+    def parse_file(self, outfile: typing.IO) -> dict:
         outname = os.path.basename(outfile)
         # Signature must contain molkey, basis, method
         metadata = {"name": outname.split("_")[0]}
@@ -90,58 +94,56 @@ class QChem_MP2_Parser(ExternalParser):
         mulliken_flag = False
         mul_charges = []
 
-        with open(outfile, 'r') as outf:
-            # iterator is better than readlines(). In case file is big
-            for line in outf:
-                if line.strip() == "":
+        for line in outfile:
+            if line.strip() == "":
+                continue
+            lsplit = line.strip().split()
+            lnw = " ".join(lsplit)
+            if "basis" not in metadata:
+                if len(lsplit) >= 2 and lsplit[0].lower() == "basis":
+                    b = lsplit[1]
+                    if lsplit[1] == "=":
+                        b = lsplit[2]
+                    data["basis"] = b
+            if "method" not in metadata:
+                if len(lsplit) >= 2 and lsplit[0].lower() == "method":
+                    m = lsplit[1]
+                    if lsplit[1] == "=":
+                        m = lsplit[2]
+                    data["method"] = m
+            if "energy" not in data:
+                if "MP2 total energy =" in lnw:
+                    data["energy"] = float(lsplit[-2])
+            if "dipole moment" not in data:
+                if not dip_flag and "Dipole Moment (Debye)" in lnw:
+                    dip_flag = True
                     continue
-                lsplit = line.strip().split()
-                lnw = " ".join(lsplit)
-                if "basis" not in metadata:
-                    if len(lsplit) >= 2 and lsplit[0].lower() == "basis":
-                        b = lsplit[1]
-                        if lsplit[1] == "=":
-                            b = lsplit[2]
-                        data["basis"] = b
-                if "method" not in metadata:
-                    if len(lsplit) >= 2 and lsplit[0].lower() == "method":
-                        m = lsplit[1]
-                        if lsplit[1] == "=":
-                            m = lsplit[2]
-                        data["method"] = m
-                if "energy" not in data:
-                    if "MP2 total energy =" in lnw:
-                        data["energy"] = float(lsplit[-2])
-                if "dipole moment" not in data:
-                    if not dip_flag and "Dipole Moment (Debye)" in lnw:
-                        dip_flag = True
+                elif dip_flag:
+                    dx, dy, dz = lsplit[1], lsplit[3], lsplit[5]
+                    dip_mom = numpy.array(
+                        [float(dx), float(dy), float(dz)]
+                    )
+                    # Debye to au
+                    dip_mom /= 0.393430307
+                    data["dipole moment"] = tuple(dip_mom)
+                    data["total dipole moment"] = (
+                        numpy.linalg.norm(dip_mom)
+                    )
+            if "mulliken charges" not in data:
+                if "Ground-State Mulliken Net Atomic Charges" in lnw \
+                        and not mulliken_flag:
+                    mulliken_flag = True
+                elif mulliken_flag:
+                    if lsplit[0] == "Atom":
                         continue
-                    elif dip_flag:
-                        dx, dy, dz = lsplit[1], lsplit[3], lsplit[5]
-                        dip_mom = numpy.array(
-                            [float(dx), float(dy), float(dz)]
-                        )
-                        # Debye to au
-                        dip_mom /= 0.393430307
-                        data["dipole moment"] = tuple(dip_mom)
-                        data["total dipole moment"] = (
-                            numpy.linalg.norm(dip_mom)
-                        )
-                if "mulliken charges" not in data:
-                    if "Ground-State Mulliken Net Atomic Charges" in lnw \
-                            and not mulliken_flag:
-                        mulliken_flag = True
-                    elif mulliken_flag:
-                        if lsplit[0] == "Atom":
-                            continue
-                        if "------------------------" in lsplit[0] and \
-                                len(mul_charges) == 0:
-                            continue
-                        if "------------------------" in lsplit[0] and \
-                                len(mul_charges) > 0:
-                            data["mulliken charges"] = tuple(mul_charges)
-                        else:
-                            mul_charges.append(float(lsplit[-1]))
+                    if "------------------------" in lsplit[0] and \
+                            len(mul_charges) == 0:
+                        continue
+                    if "------------------------" in lsplit[0] and \
+                            len(mul_charges) > 0:
+                        data["mulliken charges"] = tuple(mul_charges)
+                    else:
+                        mul_charges.append(float(lsplit[-1]))
         metadata["data"] = data
         return data
 
@@ -150,24 +152,25 @@ class QChem_MP2_Parser(ExternalParser):
         ext_dict = {}
 
         for outfile in outfiles:
+            outf = open(outfile, 'r')
             # filter out non qchem MP2 outfiles
-            if self._suite_from_outfile(outfile) != "QChem" or \
-                    QChemOutFile().find_parser() != "QChem_MP2":
+            if self._suite_from_outfile(outf) != "QChem" or \
+                    QChemOutFile().find_parser(outf) != "QChem_MP2":
                 continue
-            ext_dict[outfile] = self.parse_file(outfile)
+            ext_dict[outfile] = self.parse_file(outf)
 
         return ext_dict
 
 
 class JSON_Parser(ExternalParser):
 
-    def parse_file(self, outfile: str) -> dict:
-        return json.load(open(outfile, 'r'))
+    def parse_file(self, outfile: typing.IO) -> dict:
+        return json.load(outfile)
 
     def load(self, filepath: str, suffix: str = 'out') -> dict:
         outfiles = self._fetch_all_outfiles(filepath, suffix)
-        return {outf: self.parse_file(outf) for outf in outfiles
-                if self._suite_from_outfile(outf) == "JSON"}
+        return {outf: self.parse_file(open(outf, 'r')) for outf in outfiles
+                if self._suite_from_outfile(open(outf, 'r')) == "JSON"}
 
 
 class OutFile:
@@ -190,22 +193,22 @@ class OutFile:
     None
     """
 
-    _registry = {}
+    _registry: dict[str, 'OutFile'] = {}
 
     def __init_subclass__(cls) -> None:
         # store an instance of each child class in _registry
         suite = cls.__name__.replace("OutFile", "")
         cls._registry[suite] = cls()
 
-    def find_parser(self, outfile: str) -> str:
+    def find_parser(self, outfile: typing.IO) -> str:
         pass
 
 
 class QChemOutFile(OutFile):
-    def find_parser(self, outfile: str) -> str:
+    def find_parser(self, outfile: typing.IO) -> str:
         raise NotImplementedError
 
 
 class JSONOutFile(OutFile):
-    def find_parser(self, outfile: str) -> str:
+    def find_parser(self, outfile: typing.IO) -> str:
         return "JSON"
