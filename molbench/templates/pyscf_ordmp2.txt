@@ -5,11 +5,11 @@ import os
 
 atom_str = """[[xyz]]"""
 basis = "[[basis]]"
-charge = "[[charge]]"
+charge = [[charge]]
 spin = [[multiplicity]] - 1
 verbose = [[verbose]]
 unit = "[[xyz_unit]]"
-symmetry = "[[symmetry]]"
+symmetry = [[symmetry]]
 restricted = not [[spin_unrestricted]]
 use_soscf = [[use_soscf]]
 ordmp2_opt = "[[optimality_criterion]]"
@@ -26,7 +26,7 @@ mf.conv_tol = [[conv_tol]]
 mf.conv_tol_grad = [[conv_tol_grad]]
 mf.max_cycle = [[scf_max_cycle]]
 
-if use_soscf:
+if not use_soscf:
     mf.kernel()
 else:
     mf.newton().kernel()
@@ -35,8 +35,14 @@ ordmp2 = mp.ORDMP2(mf, optimality=ordmp2_opt)
 ordmp2.kernel()
 dm1 = ordmp2.make_rdm1()
 
-dip_moment = mf.dip_moment(dm=dm1)
-mul_pops, mul_charges = mf.mulliken_pup(dm=dm1)
+dip_moment = mf.dip_moment(dm=dm1, unit='au')
+mul_pops, mul_charges = mf.mulliken_pop(dm=dm1)
+homo_index = numpy.where(mf.mo_occ > 0)[0][-1]
+lumo_index = numpy.where(mf.mo_occ < 1)[0][0]
+homo_lumo_gap = mf.mo_energy[lumo_index] - mf.mo_energy[homo_index]
+
+max_t2 = numpy.amax(ordmp2._mp2.t2)
+min_t2 = numpy.amin(ordmp2._mp2.t2)
 
 name = os.path.basename(__file__)
 outname = os.path.splitext(name)[0] + ".out"
@@ -53,7 +59,10 @@ data = {
 	"dipole moment": tuple(dip_moment),
 	"total dipole moment": numpy.linalg.norm(dip_moment),
     "mulliken populations": tuple(mul_pops),
-    "mulliken charges": tuple(mul_charges)
+    "mulliken charges": tuple(mul_charges),
+    "scf energy": mf.energy_tot(),
+    "homo lumo gap": homo_lumo_gap,
+    "t2 range": (min_t2, max_t2)
 }
 metadata["data"] = data
 

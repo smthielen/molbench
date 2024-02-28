@@ -72,7 +72,7 @@ from .bash_wrapper import create_bash_files, make_send_script
 from .comparison import Comparison
 from .statistics import Statistics
 from .export import Exporter, CsvExporter
-
+from .external_parser import JSON_Parser
 
 __all__ = ["config", "load_benchmark", "InputConstructor",
            "TemplateConstructor", "create_bash_files", "make_send_script",
