@@ -120,8 +120,10 @@ class Comparison(dict):
     def add_external(self, external: dict) -> None:
         """
         Read in external data of the following structure:
-        {data_separator1: val, data_separator2: val, ...,
-         'data': {proptype1: val, proptype2: val, ...}}
+        {outfile: {_: {
+            data_separator1: val, data_separator2: val, ...,
+            'data': {proptype1: val, proptype2: val, ...}
+        }}}
         """
         # XXX: 'name' and 'data' are external specific
         # -> could add them as arguments to the function

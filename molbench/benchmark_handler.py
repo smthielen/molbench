@@ -26,13 +26,14 @@ def _collect_premade_benchmarks():
                 premade_benchmarks.update({key: val})
 
 
-def load_benchmark(benchmark: str) -> dict:
+def load_benchmark(benchmark: str, use_local_benchmark: bool = False) -> dict:
     _collect_premade_benchmarks()
     global premade_benchmarks
 
     # If the benchmark is premade, use the premade benchmark
     # Otherwise, interpret as a path
-    if premade_benchmarks is not None and benchmark in premade_benchmarks:
+    if not use_local_benchmark and premade_benchmarks is not None and \
+            benchmark in premade_benchmarks:
         benchmark = premade_benchmarks[benchmark]
     else:
         if not os.path.exists(benchmark):
