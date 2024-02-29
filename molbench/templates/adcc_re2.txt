@@ -23,7 +23,7 @@ mf.kernel()
 n_threads = os.environ.get("OMP_NUM_THREADS", None)
 if n_threads is None:
 	n_threads = 1
-set_n_threads(n_threads)
+set_n_threads(int(n_threads))
 
 hf = ReferenceState(mf)
 re = LazyRe(hf, [[re_conv_tol]])
