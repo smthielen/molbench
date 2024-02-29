@@ -42,19 +42,18 @@ class ExternalParser:
 
         data = {}
         for outf in outfiles:
-            outfile = open(outf, 'r')
-            suite = self._suite_from_outfile(outfile)
+            suite = self._suite_from_outfile(outf)
             extractor = metadata_extractors.get(suite, None)
             if extractor is None:
                 log.critical("No extractor available to find a suitable Parser"
                              f" for suite {suite}.")
             # contains all the relevant metadata, suite, method, etc
             # to determine which parser is needed
-            parser = extractor.find_parser(outfile)
+            parser = extractor.find_parser(open(outf, 'r'))
             parser = self._registry.get(parser, None)
             if parser is None:
                 log.critical(f"No parser available for parsing {parser}.")
-            data[outf] = parser.parse_file(outfile)
+            data[outf] = parser.parse_file(open(outf, 'r'))
         return data
 
     def _fetch_all_outfiles(self, path: str, suffix: str = 'out') -> list:
@@ -68,16 +67,19 @@ class ExternalParser:
 
         return outfiles
 
-    def _suite_from_outfile(self, outfile: typing.IO) -> str:
+    def _suite_from_outfile(self, outfile: str) -> str:
+        # since we have to open the file multiple times don't use IO here!
+
         # check JSON
         try:
-            json.load(outfile)
+            json.load(open(outfile, 'r'))
             return "JSON"
         except json.JSONDecodeError:
             pass
-        # check QCHEM
-        if any("Welcome to Q-Chem" in line for line in outfile):
-            return "QChem"
+        with open(outfile, 'r') as f:
+            # check QCHEM
+            if any("Welcome to Q-Chem" in line for line in f):
+                return "QChem"
         log.critical(f"Could not determine a suite for outfile {outfile}.",
                      self)
 
@@ -152,12 +154,11 @@ class QChem_MP2_Parser(ExternalParser):
         ext_dict = {}
 
         for outfile in outfiles:
-            outf = open(outfile, 'r')
             # filter out non qchem MP2 outfiles
-            if self._suite_from_outfile(outf) != "QChem" or \
-                    QChemOutFile().find_parser(outf) != "QChem_MP2":
+            if self._suite_from_outfile(outfile) != "QChem" or \
+                    QChemOutFile().find_parser(open(outfile, 'r')) != "QChem_MP2":  # noqa E501
                 continue
-            ext_dict[outfile] = self.parse_file(outf)
+            ext_dict[outfile] = self.parse_file(open(outfile, 'r'))
 
         return ext_dict
 
@@ -170,7 +171,7 @@ class JSON_Parser(ExternalParser):
     def load(self, filepath: str, suffix: str = 'out') -> dict:
         outfiles = self._fetch_all_outfiles(filepath, suffix)
         return {outf: self.parse_file(open(outf, 'r')) for outf in outfiles
-                if self._suite_from_outfile(open(outf, 'r')) == "JSON"}
+                if self._suite_from_outfile(outf) == "JSON"}
 
 
 class OutFile:
