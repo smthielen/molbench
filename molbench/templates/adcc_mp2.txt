@@ -1,5 +1,5 @@
 from pyscf import scf, gto
-from adcc import ReferenceState, LazyRe, set_n_threads
+from adcc import ReferenceState, LazyMp, set_n_threads
 from math import sqrt
 import json
 import os
@@ -26,9 +26,9 @@ if n_threads is None:
 set_n_threads(n_threads)
 
 hf = ReferenceState(mf)
-re = LazyRe(hf, [[re_conv_tol]])
+mp = LazyMp(hf)
 
-dipole = re.dipole_moment(2)
+dipole = mp.dipole_moment(2)
 
 name = os.path.basename(__file__)
 outname = os.path.splitext(name)[0] + ".out"
@@ -39,7 +39,7 @@ metadata = {
 	"method": "[[method]]",
 }
 data = {
-	"energy": re.energy(2),
+	"energy": mp.energy(2),
 	"dipole moment": list(dipole),
 	"total dipole moment": sqrt(sum(comp**2 for comp in dipole)),
 	"scf energy": mf.energy_tot(),
