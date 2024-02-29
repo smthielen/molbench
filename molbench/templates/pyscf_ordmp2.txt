@@ -66,4 +66,5 @@ data = {
 }
 metadata["data"] = data
 
-json.dump(metadata, open(outname, 'w'), indent=4)
+outdata = {"gs": metadata}
+json.dump(outdata, open(outname, 'w'), indent=4)

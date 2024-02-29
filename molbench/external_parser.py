@@ -145,7 +145,7 @@ class QChem_MP2_Parser(ExternalParser):
                     else:
                         mul_charges.append(float(lsplit[-1]))
         metadata["data"] = data
-        return data
+        return {"s0": metadata}
 
     def load(self, filepath: str, suffix: str = 'out') -> dict:
         outfiles = self._fetch_all_outfiles(filepath, suffix)

@@ -23,9 +23,9 @@ class Comparison(dict):
     """
     _data_separators = ("basis", "method")
 
-    def __init__(self, data_separators: tuple[str] = None) -> None:
-        if data_separators is not None:
-            self._data_separators = tuple(data_separators)
+    def __init__(self, *data_separators: str) -> None:
+        if data_separators:
+            self._data_separators = data_separators
         super().__init__()
 
     @property
@@ -128,26 +128,27 @@ class Comparison(dict):
         if isinstance(external, Comparison):
             log.error("Cannot parse a Comparison as external data.")
             return
-        for outfile, metadata in external.items():
-            name = metadata.get("name", None)
-            data = metadata.get("data", None)
-            separators = [metadata.get(key, None)
-                          for key in self.data_separators]
-            if name is None or data is None or \
-                    any(s is None for s in separators):
-                continue
-            if name not in self:
-                self[name] = {}
-            d = self[name]
-            for separator in separators:
-                if separator not in d:
-                    d[separator] = {}
-                d = d[separator]
-            for proptype, value in data.items():
-                if proptype not in d:
-                    d[proptype] = {}
-                if outfile in d[proptype]:
-                    log.warning("Overwriting already existing value for "
-                                f"{name}, {separators} and {proptype}.",
-                                Comparison)
-                d[proptype][outfile] = self._import_value(value)
+        for outfile, dataset in external.items():
+            for metadata in dataset.values():
+                name = metadata.get("name", None)
+                data = metadata.get("data", None)
+                separators = [metadata.get(key, None)
+                              for key in self.data_separators]
+                if name is None or data is None or \
+                        any(s is None for s in separators):
+                    continue
+                if name not in self:
+                    self[name] = {}
+                d = self[name]
+                for separator in separators:
+                    if separator not in d:
+                        d[separator] = {}
+                    d = d[separator]
+                for proptype, value in data.items():
+                    if proptype not in d:
+                        d[proptype] = {}
+                    if outfile in d[proptype]:
+                        log.warning("Overwriting already existing value for "
+                                    f"{name}, {separators} and {proptype}.",
+                                    Comparison)
+                    d[proptype][outfile] = self._import_value(value)

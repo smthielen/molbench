@@ -33,7 +33,6 @@ metadata = {
 	"name": name.split("_")[0],
 	"basis": "[[basis]]",
 	"method": "[[method]]",
-
 }
 data = {
 	"energy": re.energy(2),
@@ -43,4 +42,5 @@ data = {
 }
 metadata["data"] = data
 
-json.dump(metadata, open(outname, 'w'), indent=2)
+outdata = {"gs": metadata}
+json.dump(outdata, open(outname, 'w'), indent=2)
