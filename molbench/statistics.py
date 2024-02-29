@@ -208,39 +208,45 @@ def _collect_errors(signed_errors: dict, assign: callable) -> list:
 def mse(signed_errors: dict, assign: callable):
     """Computes the mean signed error."""
     errors = _collect_errors(signed_errors, assign)
-    return numpy.array(errors).mean(axis=0)
+    return numpy.array(errors).mean(axis=0), len(errors)
 
 
 @register_as_error_measure
 def sde(signed_errors: dict, assign: callable):
     """Computes the standard deviation."""
     errors = _collect_errors(signed_errors, assign)
-    return numpy.array(errors).std(axis=0)
+    return numpy.array(errors).std(axis=0), len(errors)
 
 
 @register_as_error_measure
 def mae(signed_errors: dict, assign: callable):
     """Computes the mean absolute error."""
     errors = _collect_errors(signed_errors, assign)
-    return numpy.sum(numpy.absolute(e) for e in errors) / len(errors)
+    if len(errors) == 0:
+        return numpy.float64(0), 0
+    else:
+        return (
+            numpy.sum(numpy.absolute(e) for e in errors) / len(errors),
+            len(errors)
+        )
 
 
 @register_as_error_measure
 def min(signed_errors: dict, assign: callable):
     """Computes the minimal signed error."""
     errors = _collect_errors(signed_errors, assign)
-    return numpy.array(errors).min(axis=0)
+    return numpy.array(errors).min(axis=0), len(errors)
 
 
 @register_as_error_measure
 def max(signed_errors: dict, assign: callable):
     """Computes the maximal signed error."""
     errors = _collect_errors(signed_errors, assign)
-    return numpy.array(errors).max(axis=0)
+    return numpy.array(errors).max(axis=0), len(errors)
 
 
 @register_as_error_measure
 def median_se(signed_errors: dict, assign: callable):
     """Computes the median signed error."""
     errors = _collect_errors(signed_errors, assign)
-    return numpy.median(numpy.array(errors), axis=0)
+    return numpy.median(numpy.array(errors), axis=0), len(errors)
