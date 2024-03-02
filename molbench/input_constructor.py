@@ -42,7 +42,7 @@ class TemplateConstructor(InputConstructor):
     Constructor that creates input files by substituting from a template.
     """
 
-    def __init__(self, template):
+    def __init__(self, template: str):
         super().__init__()
         self.init_template(template)
 
@@ -74,13 +74,24 @@ class TemplateConstructor(InputConstructor):
                              "loaded.", self)
 
     def create(self, benchmark: dict, basepath: str, calculation_details: dict,
+               input_expansion_keys: tuple[str] = ("basis",),
                flat_structure: bool = False,
-               name_template: str = '[[name]]_[[method]]_[[basis]].in'):
-        # Iterate over all compounds/basis set combos
-        # For each, create a file (and folder in deep structure),
+               name_template: str = None):
+        # For each compound iterate over all combinattions of the
+        # input_expansion_keys that exist in the benchmark.
+        # By default this means iterate over all basis sets for which
+        # reference data is available.
+        # For each variant, create a file (and folder in deep structure),
         # then insert template
         basepath_abs = os.path.abspath(basepath)
         inputfile_list = []
+
+        if name_template is None:
+            # construct a name that ensures that each file has a unique name
+            name_template = "[[name]]_[[method]]"
+            for key in input_expansion_keys:
+                name_template += f"_[[{key}]]"
+            name_template += ".in"
 
         if not os.path.exists(basepath_abs):
             os.makedirs(basepath_abs, exist_ok=True)
@@ -99,15 +110,33 @@ class TemplateConstructor(InputConstructor):
                     not isinstance(base_details["xyz"], str):
                 base_details["xyz"] = "\n".join(base_details["xyz"])
 
-            basis_sets = set([prop['basis'] for prop in
-                              moldict['properties'].values()
-                              if 'basis' in prop])
-            for basis in basis_sets:
-                log.debug(f"Now handling: {molkey} {basis}")
-                details = base_details.copy()
-                details["basis"] = basis
+            # find all unique combinations of relevant keys present in the
+            # benchmark, skipping all entries where at least one key is not
+            # defined
+            variants = set()
+            for prop in moldict["properties"].values():
+                var = tuple(
+                    (key, prop.get(key, None)) for key in input_expansion_keys
+                )
+                if any(v is None for _, v in var):
+                    continue
+                variants.add(var)
 
+            for var in variants:
+                log.debug(f"Now handling: {molkey} -> {var}.")
+                details = base_details.copy()
+                for k, v in var:
+                    # inform if conflicting data exists
+                    if k in details:
+                        log.warning(f"Found conflicting entry for {k}. "
+                                    f"Overwriting existing value {details[k]}"
+                                    f"with {v}.", TemplateConstructor)
+                    details[k] = v
+
+                # this is direct user input -> use whatever we got and
+                # silently overwrite if necessary
                 details.update(calculation_details)
+                # config should only be relevant for backup -> dont overwrite!
                 for key, val in config.items():
                     if key not in details:
                         details[key] = val

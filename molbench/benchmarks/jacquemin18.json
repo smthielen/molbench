@@ -1,0 +1,263 @@
+{
+	"acetaldehyde": {
+		"charge": 0,
+		"multiplicity": 1,
+		"n_atoms": 7,
+		"n_electrons": 24,
+		"n_core_orbitals": 3,
+		"n_states": {
+			"n_singlets": 1,
+			"n_triplets": 1
+		},
+		"xyz": [
+			"C  -0.00234503   0.00000000   0.87125063",
+			"C  -1.75847785   0.00000000  -1.34973671",
+			"O   2.27947397   0.00000000   0.71968028",
+			"H  -0.92904537   0.00000000   2.73929404",
+			"H  -2.97955463   1.66046488  -1.25209463",
+			"H  -2.97955463  -1.66046488  -1.25209463",
+			"H  -0.70043433   0.00000000  -3.11066412"
+		],
+		"xyz_unit": "Bohr",
+		"properties": {
+			"s1": {
+				"basis": "aug-cc-pvtz",
+				"method": "tbe",
+				"type": "excitation energy",
+				"state_multiplicity": 1,
+				"detected_point_group": "Cs",
+				"irrep": "A\"",
+				"state_id": "s1",
+				"value": 4.31
+			},
+			"t1": {
+				"basis": "aug-cc-pvtz",
+				"method": "tbe",
+				"type": "excitation energy",
+				"state_multiplicity": 3,
+				"detected_point_group": "Cs",
+				"irrep": "A\"",
+				"state_id": "t1",
+				"value": 3.97
+			},
+			"cc3_s1": {
+				"basis": "aug-cc-pvtz",
+				"method": "cc3",
+				"type": "excitation energy",
+				"state_multiplicity": 1,
+				"detected_point_group": "Cs",
+				"irrep": "A\"",
+				"state_id": "s1",
+				"value": 4.31
+			},
+			"cc3_t1": {
+				"basis": "aug-cc-pvtz",
+				"method": "cc3",
+				"type": "excitation energy",
+				"state_multiplicity": 3,
+				"detected_point_group": "Cs",
+				"irrep": "A\"",
+				"state_id": "t1",
+				"value": 3.95
+			}
+		}
+	},
+	"acetylene": {
+		"charge": 0,
+		"multiplicity": 1,
+		"n_atoms": 4,
+		"n_electrons": 14,
+		"n_core_orbitals": 2,
+		"n_states": {
+			"n_singlets": 2,
+			"n_triplets": 3
+		},
+		"xyz": [
+			"C  0.00000000  0.00000000   1.14048351",
+			"C  0.00000000  0.00000000  -1.14048351",
+			"H  0.00000000  0.00000000   3.14009043",
+			"H  0.00000000  0.00000000  -3.14009043"
+		],
+		"xyz_unit": "Bohr",
+		"properties": {
+			"s1": {
+				"basis": "aug-cc-pvtz",
+				"method": "tbe",
+				"type": "excitation energy",
+				"state_multiplicity": 1,
+				"detected_point_group": "Dinfh",
+				"irrep": "Su-",
+				"state_id": "s1",
+				"value": 7.10
+			},
+			"s2": {
+				"basis": "aug-cc-pvtz",
+				"method": "tbe",
+				"type": "excitation energy",
+				"state_multiplicity": 1,
+				"detected_point_group": "Dinfh",
+				"irrep": "Du",
+				"state_id": "s2",
+				"value": 7.44
+			},
+			"t1": {
+				"basis": "aug-cc-pvtz",
+				"method": "tbe",
+				"type": "excitation energy",
+				"state_multiplicity": 3,
+				"detected_point_group": "Dinfh",
+				"irrep": "Su+",
+				"state_id": "t1",
+				"value": 5.53
+			},
+			"t2": {
+				"basis": "aug-cc-pvtz",
+				"method": "tbe",
+				"type": "excitation energy",
+				"state_multiplicity": 3,
+				"detected_point_group": "Dinfh",
+				"irrep": "Du",
+				"state_id": "t2",
+				"value": 6.40
+			},
+			"t3": {
+				"basis": "aug-cc-pvtz",
+				"method": "tbe",
+				"type": "excitation energy",
+				"state_multiplicity": 3,
+				"detected_point_group": "Dinfh",
+				"irrep": "Su-",
+				"state_id": "t3",
+				"value": 7.08
+			},
+			"cc3_s1": {
+				"basis": "aug-cc-pvtz",
+				"method": "cc3",
+				"type": "excitation energy",
+				"state_multiplicity": 1,
+				"detected_point_group": "Dinfh",
+				"irrep": "Su-",
+				"state_id": "s1",
+				"value": 7.09
+			},
+			"cc3_s2": {
+				"basis": "aug-cc-pvtz",
+				"method": "cc3",
+				"type": "excitation energy",
+				"state_multiplicity": 1,
+				"detected_point_group": "Dinfh",
+				"irrep": "Du",
+				"state_id": "s2",
+				"value": 7.42
+			},
+			"cc3_t1": {
+				"basis": "aug-cc-pvtz",
+				"method": "cc3",
+				"type": "excitation energy",
+				"state_multiplicity": 3,
+				"detected_point_group": "Dinfh",
+				"irrep": "Su+",
+				"state_id": "t1",
+				"value": 5.50
+			},
+			"cc3_t2": {
+				"basis": "aug-cc-pvtz",
+				"method": "cc3",
+				"type": "excitation energy",
+				"state_multiplicity": 3,
+				"detected_point_group": "Dinfh",
+				"irrep": "Du",
+				"state_id": "t2",
+				"value": 6.40
+			},
+			"cc3_t3": {
+				"basis": "aug-cc-pvtz",
+				"method": "cc3",
+				"type": "excitation energy",
+				"state_multiplicity": 3,
+				"detected_point_group": "Dinfh",
+				"irrep": "Su-",
+				"state_id": "t3",
+				"value": 7.07
+			}
+		}
+	},
+	"acetylene_fluorescense_Au": {
+		"charge": 0,
+		"multiplicity": 1,
+		"n_atoms": 4,
+		"n_electrons": 14,
+		"n_core_orbitals": 2,
+		"n_states": {
+			"n_singlets": 1
+		},
+		"xyz": [
+			"C   1.29567779   0.00000000  -0.01846047",
+			"C  -1.29567779   0.00000000   0.01846047",
+			"H   2.41938674   0.00000000   1.70881682",
+			"H  -2.41938674   0.00000000  -1.70881682"
+		],
+		"xyz_unit": "Bohr",
+		"properties": {
+			"s1": {
+				"basis": "aug-cc-pvtz",
+				"method": "tbe",
+				"type": "excitation energy",
+				"state_multiplicity": 1,
+				"detected_point_group": "C2h",
+				"irrep": "Au",
+				"state_number": 1,
+				"value": 3.64
+			},
+			"cc3_s1": {
+				"basis": "aug-cc-pvtz",
+				"method": "cc3",
+				"type": "excitation energy",
+				"state_multiplicity": 1,
+				"detected_point_group": "C2h",
+				"irrep": "Au",
+				"state_number": 1,
+				"value": 3.64
+			}
+		}
+	},
+	"acetylene_fluorescense_A2": {
+		"charge": 0,
+		"multiplicity": 1,
+		"n_atoms": 4,
+		"n_electrons": 14,
+		"n_core_orbitals": 2,
+		"n_states": {
+			"n_singlets": 1
+		},
+		"xyz": [
+			"C  0.00000000   1.26834508  -0.11726146",
+			"C  0.00000000  -1.26834508  -0.11726146",
+			"H  0.00000000   2.67282325   1.39629264",
+			"H  0.00000000  -2.67282325   1.39629264"
+		],
+		"xyz_unit": "Bohr",
+		"properties": {
+			"s1": {
+				"basis": "aug-cc-pvtz",
+				"method": "tbe",
+				"type": "excitation energy",
+				"state_multiplicity": 1,
+				"detected_point_group": "C2v",
+				"irrep": "A2",
+				"state_number": 1,
+				"value": 3.85
+			},
+			"cc3_s1": {
+				"basis": "aug-cc-pvtz",
+				"method": "cc3",
+				"type": "excitation energy",
+				"state_multiplicity": 1,
+				"detected_point_group": "C2v",
+				"irrep": "A2",
+				"state_number": 1,
+				"value": 3.84
+			}
+		}
+	}
+}

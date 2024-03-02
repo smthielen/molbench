@@ -1,0 +1,180 @@
+from pyscf import scf, gto
+from adcc import run_adc, set_n_threads, LazyRe, dot
+from scipy import constants
+from math import sqrt
+import json
+import os
+
+
+# system related data -> should be in the benchmark
+name = "[[name]]"
+geometry = """
+[[xyz]]
+"""
+xyz_unit = "[[xyz_unit]]"
+basis = "[[basis]]"
+charge = [[charge]]
+multiplicity = [[multiplicity]]
+# scf specific data
+conv_tol = [[conv_tol]]
+conv_tol_grad = [[conv_tol_grad]]
+scf_max_cycle = [[scf_max_cycle]]
+verbose = [[verbose]]
+use_soscf = [[use_soscf]]
+# adc related data
+adc_order = [[adc_order]]
+use_frozen_core = [[use_frozen_core]]
+n_core_orbitals = [[n_core_orbitals]]
+state_multiplicity = [[state_multiplicity]]
+n_states = [[n_states]]
+n_additional_states = [[n_additional_states]]
+re_conv_tol = [[re_conv_tol]]
+adc_amplitude_tolerance = [[adc_amplitude_tolerance]]
+
+mul_to_string = {1: "singlet", 3: "triplet"}
+state_multiplicity = mul_to_string[state_multiplicity]
+
+
+def run_hf():
+	# Run pyscf HF
+	mol = gto.M(
+		atom=geometry, basis=basis, symmetry=0,
+		charge=charge, spin=multiplicity - 1,
+		verbose=verbose, unit=xyz_unit
+	)
+
+	mf = scf.RHF(mol)
+	mf.conv_tol = conv_tol
+	mf.conv_tol_grad = conv_tol_grad
+	mf.max_cycle = scf_max_cycle
+
+	if use_soscf:  # second order scf
+		mf.newton().kernel()
+	else:
+		mf.kernel()
+	return mf
+
+
+def run_adcc(hf, **kwargs):
+	# Set number of cores for adcc
+	n_threads = os.environ.get("OMP_NUM_THREADS", 1)
+	set_n_threads(int(n_threads))
+
+	print("\n" + "#"*80)
+	print(" "*25, "Running ", kwargs.get("method"))
+	print("#"*80)
+	states = run_adc(hf, **kwargs)
+	print(states.describe())
+	print("#"*80 + "\n")
+	print(states.describe_amplitudes(tolerance=adc_amplitude_tolerance))
+	return states
+
+
+def dump_adcc(states, outname):
+	if not states.converged:
+		print("ADC calculation not converged")
+		exit()
+	if states.kind == "singlet":
+		multiplicity = 1
+	elif states.kind == "triplet":
+		multiplicity = 3
+	else:
+		raise ValueError(f"Unknown states kind {states.kind}.")
+
+	out = {}
+	# dump ground state... because why not
+	if isinstance(states.ground_state, LazyRe):
+		gs_method = f"re{adc_order}"
+	else:
+		gs_method = f"mp{adc_order}"
+	metadata = {
+		"name": name,
+		"basis": basis,
+		"method": gs_method,
+	}
+	au_to_ev = constants.value("Hartree energy in eV")
+	data = {}
+	data["state_id"] = "ground state"
+	data["scf energy"] = states.reference_state.energy_scf
+	data["energy correction"] = states.ground_state.energy_correction(adc_order)
+	data["energy"] = states.ground_state.energy(adc_order)
+	if adc_order == 2:  # only second order density implemented currently
+		dip = states.ground_state.dipole_moment(2)
+		data["dipole moment"] = tuple(dip)
+		data["total dipole moment"] = sqrt(sum(comp**2 for comp in dip))
+	metadata["data"] = data
+	out["gs"] = metadata
+
+	# dump the excited states
+	for state_num, energy_au in enumerate(states.excitation_energy):
+		vec = states.excitation_vector[state_num]
+		metadata = {
+			"name": name,
+			"basis": basis,
+			"method": states.method.name,
+			"state_multiplicity": multiplicity,
+			"detected_point_group": "C1",
+			"irrep": "A",
+			"exctation type": "Excitation",
+			"vec_norm": overlap(vec, vec),
+			"state_id": None,  # state has still to be assigned!
+		}
+		data = {}
+		data["excitation energy"] = round(energy_au * au_to_ev, 6)
+		data["osc_strength"] = round(states.oscillator_strength[state_num], 4)
+		metadata["data"] = data
+		out[state_num + 1] = metadata
+	json.dump(out, open(outname + ".out", "w"), indent=2)
+
+
+def state_overlap(left, right):
+	method_l = left.method.name
+	method_r = right.method.name
+	print("\n", "-"*80)
+	for i, l in enumerate(left.excitation_vector):
+		print(f"Overlap of {method_r} states with {method_l} state {i}:")
+		overlaps = {}
+		for j, r in enumerate(right.excitation_vector):
+			overlaps[j] = round(l.dot(r), 4)
+		print(overlaps)
+	print("-"*80)
+
+
+def overlap(left, right):
+	if left.keys() != right.keys():
+		raise ValueError("Left and right eigenvector don't contain the same blocks.")
+	overlap = {}
+	blocks = sorted(left, key=lambda b: len(b))
+	for i, block in enumerate(blocks):
+		overlap[f"V{i+1}"] = round(dot(left[block], right[block]), 4)
+	return overlap
+
+
+if __name__ == "__main__":
+	# QSYS c=[[threads]]
+	# QSYS t=[[walltime]]
+	# QSYS mem=[[memory]]
+	hf = run_hf()
+
+	file_name = os.path.splitext(os.path.basename(__file__))[0]
+
+	# normal adc(n) calculation
+	n_state_kind = f"n_{state_multiplicity}s"
+	kwargs = {
+		"method": f"adc{adc_order}",
+		n_state_kind: n_states[n_state_kind] + n_additional_states,
+	}
+	if use_frozen_core:
+		kwargs["frozen_core"] = n_core_orbitals
+	adc = run_adcc(hf, **kwargs)
+	dump_adcc(adc, file_name)
+
+	# re-adc(n) calculation
+	kwargs["method"] = f"re-adc{adc_order}"
+	kwargs["re_conv_tol"] = re_conv_tol
+	re_adc = run_adcc(hf, **kwargs)
+	dump_adcc(re_adc, file_name.replace("adc", "re-adc"))
+
+	# compute the overlap of the re states and the normal states
+	# -> better assignment
+	state_overlap(adc, re_adc)
